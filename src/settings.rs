@@ -2,6 +2,7 @@ use std::fs;
 
 
 use serde::{Deserialize, Serialize};
+use serde_json::ser::State::Empty;
 use serde_json::Value;
 
 const DEFAULT_SETTINGS: Settings = {
@@ -12,10 +13,18 @@ const DEFAULT_SETTINGS: Settings = {
     }
 };
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub enum ResultOutput {
+    String(String),
+    Value(Value)
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Service {
-    name: String,
-    command: String
+    pub name: String,
+    pub command: String,
+    pub successes: f32,
+    pub result: Vec<ResultOutput>
 }
 impl Service {
     pub fn new(value: &Value) -> Self {
@@ -25,7 +34,9 @@ impl Service {
 
         Service {
             name: String::from(name),
-            command: String::from(command)
+            command: String::from(command),
+            successes: 0.00,
+            result: Vec::new()
         }
     }
 }
