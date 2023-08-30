@@ -1,5 +1,4 @@
 use std::fs;
-use ipipe::Error;
 
 
 use serde::{Deserialize, Serialize};
@@ -8,14 +7,13 @@ use serde_json::Value;
 const DEFAULT_SETTINGS: Settings = {
     Settings {
         check_interval: 600,
-        max_ping: 7000,
-        command_timeout: 12000,
+        timeout: 12000,
         services: vec![]
     }
 };
 
 #[derive(Deserialize, Serialize, Debug)]
-struct Service {
+pub struct Service {
     name: String,
     command: String
 }
@@ -34,10 +32,9 @@ impl Service {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
-    check_interval: u64,
-    max_ping: u64,
-    command_timeout: u64,
-    services: Vec<Service>
+    pub check_interval: u64,
+    pub timeout: u64,
+    pub services: Vec<Service>
 }
 
 impl Settings {
@@ -47,8 +44,7 @@ impl Settings {
         let json: Value = serde_json::from_reader(file).expect("file should be proper JSON");
 
         let check_interval = json.get("check_interval").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.check_interval);
-        let max_ping = json.get("max_ping").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.max_ping);
-        let command_timeout = json.get("command_timeout").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.command_timeout);
+        let timeout = json.get("timeout").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.timeout);
 
         let services_try = json.get("services").and_then(|v| v.as_array());
         let services = match services_try {
@@ -60,8 +56,7 @@ impl Settings {
 
         Settings {
             check_interval,
-            max_ping,
-            command_timeout,
+            timeout,
             services,
         }
     }

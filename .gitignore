@@ -81,3 +81,5 @@ fabric.properties
 target
 
 settings.json
+commands/*.py
+commands/*.sh
