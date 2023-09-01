@@ -1,5 +1,3 @@
-use std::fmt;
-use std::fmt::{Display, format};
 use ipipe::Pipe;
 use std::sync::{Arc, Mutex};
 use crate::settings::Settings;
@@ -31,17 +29,24 @@ impl PipeHandler {
         }
     }
 
-    pub fn listen(self){
+    pub fn listen(mut self){
         for line in BufReader::new(self.pipe_in).lines()
         {
             println!("> {}", line.unwrap());
             let settings = { self.settings.lock().unwrap() };
-            //self.print(serde_json::to_string_pretty(&settings.services).unwrap());
+            //self.print();
+            self.pipe_out
+                .write_all(
+                    serde_json::to_string_pretty(&settings.services)
+                        .expect("Failed to parse as JSON")
+                        .as_bytes()
+                )
+                .expect("Failed to write to pipe");
         }
     }
 
 
-    pub fn print(mut self, content: String){
-        self.pipe_out.write_all(content.as_bytes());
-    }
+    //pub fn print(&mut self, content: String){
+    //    self.pipe_out.write_all(content.as_bytes());
+    //}
 }

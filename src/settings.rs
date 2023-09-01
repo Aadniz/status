@@ -13,13 +13,29 @@ const DEFAULT_SETTINGS: Settings = {
     }
 };
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum BoolOrFloat {
+    Bool(bool),
+    Float(f64)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestResult {
+    pub(crate) name: String,
+    pub(crate) success: BoolOrFloat,
+    pub(crate) result: Value,
+}
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub enum ResultOutput {
     String(String),
-    Value(Value)
+    Bool(bool),
+    Int(i32),
+    Float(f32),
+    Result(TestResult)
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Service {
     pub name: String,
     pub command: String,
