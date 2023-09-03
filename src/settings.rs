@@ -27,15 +27,15 @@ pub enum ResultOutput {
     Bool(bool),
     Int(i32),
     Float(f32),
-    Result(TestResult)
+    Result(Vec<TestResult>)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Service {
     pub name: String,
     pub command: String,
-    pub successes: f32,
-    pub result: Vec<ResultOutput>
+    pub successes: f64,
+    pub result: ResultOutput
 }
 impl Service {
     pub fn new(value: &Value) -> Self {
@@ -47,7 +47,7 @@ impl Service {
             name: String::from(name),
             command: String::from(command),
             successes: 0.00,
-            result: Vec::new()
+            result: ResultOutput::Bool(false)
         }
     }
 }

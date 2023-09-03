@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::process::{Command, ExitStatus};
 use serde::{Deserialize, Serialize};
 use crate::settings::{ResultOutput, Service, Settings, TestResult};
-use serde_json::{to_string, Value};
+use serde_json::{Error, to_string, Value};
 
 
 pub struct Tester {
@@ -25,7 +25,7 @@ impl Tester {
             if option_output.is_err() {
                 let result : ResultOutput = ResultOutput::String(option_output.expect_err("Not an error?").to_string());
                 test.successes = 0.0;
-                test.result = vec![result];
+                test.result = result;
                 continue;
             }
 
@@ -36,13 +36,15 @@ impl Tester {
 
             // Command returned a non-zero code
             if !status.success() {
-                let result : ResultOutput = if stderr.is_empty() {
-                    ResultOutput::String(format!("Exited with non-zero code: {}", status.code().unwrap()))
-                }else{
+                let result : ResultOutput = if !stderr.is_empty() {
                     ResultOutput::String(stderr.to_string())
+                }else if !stdout.is_empty(){
+                    ResultOutput::String(stdout.to_string())
+                }else{
+                    ResultOutput::String(format!("Exited with non-zero code: {}", status.code().unwrap()))
                 };
                 test.successes = 0.0;
-                test.result = vec![result];
+                test.result = result;
                 continue;
             }
 
@@ -55,13 +57,20 @@ impl Tester {
                 Err(e) => self.format_plain(&stdout)
             };
 
+            test.successes = match &test.result {
+                ResultOutput::String(_) => 1.0,
+                ResultOutput::Bool(b) => b.clone() as i32 as f64,
+                ResultOutput::Int(i) => i.clone() as f64,
+                ResultOutput::Float(f) => f.clone() as f64,
+                ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
+            }
         }
 
         // println!("{:#?}", settings);
     }
 
 
-    fn format_json(&self, value : Value, test : Service) -> Vec<ResultOutput>{ // JSON
+    fn format_json(&self, value : Value, test : Service) -> ResultOutput { // JSON
         // Must include name (string), success(bool|float), result(string|number|bool|json)
         // Root JSON can be an array or an object
         if !value.is_object() && !value.is_array() {
@@ -72,7 +81,7 @@ impl Tester {
         } else {
             value.as_array().unwrap().to_vec()
         };
-        let mut results : Vec<ResultOutput> = vec![];
+        let mut results : Vec<TestResult> = vec![];
         for obj in tests {
             let name = if let Some(name_value) = obj.get("name") {
                 if let Some(name_str) = name_value.as_str() {
@@ -105,16 +114,84 @@ impl Tester {
             };
 
 
-            results.push(ResultOutput::Result(TestResult{
+            results.push((TestResult{
                 name,
                 success,
                 result: result_output.clone()
             }));
         }
-        results
+        ResultOutput::Result(results)
     }
 
-    fn format_plain(&self, value : &str) -> Vec<ResultOutput> {
-        vec![]
+    fn format_plain(&self, value : &str) -> ResultOutput {
+        let mut results : Vec<TestResult> = vec![];
+        // Validate format
+        let mut found_name = false;
+        let mut name : String = String::from("");
+        let mut success : f64 = -1.0;
+        let mut result_builder : String = String::from("");
+
+        fn make_result(name : String, success : f64, result_builder : String) -> TestResult {
+            // We want to support 2 different formats. Here we go
+            let result = match serde_json::from_str::<Value>(&result_builder) {
+                // JSON
+                Ok(value) => value,
+                // PLAIN
+                Err(e) => match serde_json::to_value(result_builder.as_str()) {
+                    Ok(value) => value,
+                    Err(e) => panic!("WTF!")
+                }
+            };
+
+            TestResult {
+                name,
+                success,
+                result
+            }
+        }
+
+        for line in value.lines() {
+            if line.is_empty() && success != -1.0 {
+                results.push(make_result(name, success, result_builder));
+                found_name = false;
+                name = String::from("");
+                result_builder = String::from("");
+                success = -1.0;
+                continue;
+            }
+            if found_name == false {
+                // Name
+                name = line.to_string();
+                found_name = true;
+                continue;
+            }
+
+            // Success
+            if line.to_string().parse::<f64>().is_ok() {
+                success = line.to_string().parse::<f64>().unwrap();
+                continue;
+            }
+            if line.to_string().parse::<i32>().is_ok() {
+                success = line.to_string().parse::<i32>().unwrap() as f64;
+                continue;
+            }
+            if line.to_string().parse::<bool>().is_ok() {
+                success = line.to_string().parse::<bool>().unwrap() as i32 as f64;
+                continue;
+            }
+
+            // Result
+            result_builder += line;
+        }
+
+        if success != -1.0 {
+            results.push(make_result(name, success, result_builder));
+        }
+
+        if !results.is_empty() {
+            ResultOutput::Result(results)
+        }else{
+            ResultOutput::String(value.to_string())
+        }
     }
 }
