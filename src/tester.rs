@@ -1,8 +1,7 @@
 use std::sync::{Arc, Mutex};
-use std::process::{Command, ExitStatus};
-use serde::{Deserialize, Serialize};
+use std::process::{Command};
 use crate::settings::{ResultOutput, Service, Settings, TestResult};
-use serde_json::{Error, to_string, Value};
+use serde_json::Value;
 
 
 pub struct Tester {
@@ -54,7 +53,7 @@ impl Tester {
                 // JSON
                 Ok(value) => self.format_json(value, test.clone()),
                 // PLAIN
-                Err(e) => self.format_plain(&stdout)
+                Err(_) => self.format_plain(&stdout)
             };
 
             test.successes = match &test.result {
@@ -114,11 +113,11 @@ impl Tester {
             };
 
 
-            results.push((TestResult{
+            results.push(TestResult{
                 name,
                 success,
                 result: result_output.clone()
-            }));
+            });
         }
         ResultOutput::Result(results)
     }
@@ -139,7 +138,7 @@ impl Tester {
                 // PLAIN
                 Err(e) => match serde_json::to_value(result_builder.as_str()) {
                     Ok(value) => value,
-                    Err(e) => panic!("WTF!")
+                    Err(_) => panic!("WTF!")
                 }
             };
 

@@ -1,8 +1,9 @@
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
+use crate::pipes::PipeHandler;
 use crate::settings::Settings;
 use crate::tester::Tester;
-use crate::pipes::{in_pipe, out_pipe};
+
 
 // headers
 pub mod settings;
@@ -14,7 +15,7 @@ fn main()
 {
     let settings = Arc::new(Mutex::new(Settings::new(None)));
     let tester = Tester::new(Arc::clone(&settings));
-    let pipe = in_pipe::InPipe::new(Arc::clone(&settings));
+    let pipe = PipeHandler::new(Arc::clone(&settings));
 
     thread::spawn(move || pipe.listen());
 

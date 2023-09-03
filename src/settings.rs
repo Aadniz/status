@@ -1,8 +1,5 @@
 use std::fs;
-
-
 use serde::{Deserialize, Serialize};
-use serde_json::ser::State::Empty;
 use serde_json::Value;
 
 const DEFAULT_SETTINGS: Settings = {
