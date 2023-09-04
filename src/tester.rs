@@ -1,7 +1,10 @@
+use std::{thread, time};
 use std::sync::{Arc, Mutex};
 use std::process::{Command};
 use crate::settings::{ResultOutput, Service, Settings, TestResult};
 use serde_json::Value;
+use process_alive::{State, Pid};
+use libc;
 
 
 pub struct Tester {
@@ -17,9 +20,20 @@ impl Tester {
 
     pub fn test(&self){
         let mut settings = self.settings.lock().unwrap();
+        let timeout = settings.timeout;
         for test in &mut settings.services {
-            let option_output = Command::new(test.command.clone())
-                .output();
+            let mut command = Command::new(test.command.clone());
+            let option_output;
+
+
+            if let Ok(child) = command.spawn() {
+                let id = child.id();
+                thread::spawn(move || Tester::suicide_watch(id, timeout));
+                println!("Child's ID is {}", id);
+                option_output = child.wait_with_output();
+            } else {
+                panic!("Oh no");
+            }
 
             if option_output.is_err() {
                 let result : ResultOutput = ResultOutput::String(option_output.expect_err("Not an error?").to_string());
@@ -39,8 +53,10 @@ impl Tester {
                     ResultOutput::String(stderr.to_string())
                 }else if !stdout.is_empty(){
                     ResultOutput::String(stdout.to_string())
-                }else{
+                }else if status.code().is_some() {
                     ResultOutput::String(format!("Exited with non-zero code: {}", status.code().unwrap()))
+                } else {
+                    ResultOutput::String(status.to_string())
                 };
                 test.successes = 0.0;
                 test.result = result;
@@ -191,6 +207,20 @@ impl Tester {
             ResultOutput::Result(results)
         }else{
             ResultOutput::String(value.to_string())
+        }
+    }
+
+    fn suicide_watch(PID : u32, timeout : u64){
+        thread::sleep(time::Duration::from_millis(timeout));
+
+        // Check if exists
+        let pid = Pid::from(PID);
+        let state = process_alive::state(pid);
+        if state.is_alive() { // DIE DIE DIE
+            unsafe {
+                libc::kill(PID as i32, 9);
+                println!("DIE DIE DIE");
+            }
         }
     }
 }
