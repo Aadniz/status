@@ -1,9 +1,9 @@
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
-use std::process::{Command};
+use std::process::{Command, Stdio};
 use crate::settings::{ResultOutput, Service, Settings, TestResult};
 use serde_json::Value;
-use process_alive::{State, Pid};
+use process_alive::Pid;
 use libc;
 
 
@@ -23,17 +23,15 @@ impl Tester {
         let timeout = settings.timeout;
         for test in &mut settings.services {
             let mut command = Command::new(test.command.clone());
-            let option_output;
 
-
-            if let Ok(child) = command.spawn() {
+            let option_output = if let Ok(child) = command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
                 let id = child.id();
                 thread::spawn(move || Tester::suicide_watch(id, timeout));
                 println!("Child's ID is {}", id);
-                option_output = child.wait_with_output();
+                child.wait_with_output()
             } else {
                 panic!("Oh no");
-            }
+            };
 
             if option_output.is_err() {
                 let result : ResultOutput = ResultOutput::String(option_output.expect_err("Not an error?").to_string());
@@ -152,7 +150,7 @@ impl Tester {
                 // JSON
                 Ok(value) => value,
                 // PLAIN
-                Err(e) => match serde_json::to_value(result_builder.as_str()) {
+                Err(_) => match serde_json::to_value(result_builder.as_str()) {
                     Ok(value) => value,
                     Err(_) => panic!("WTF!")
                 }
@@ -210,16 +208,23 @@ impl Tester {
         }
     }
 
-    fn suicide_watch(PID : u32, timeout : u64){
+    fn suicide_watch(pid_num : u32, timeout : u64){
         thread::sleep(time::Duration::from_millis(timeout));
 
         // Check if exists
-        let pid = Pid::from(PID);
-        let state = process_alive::state(pid);
-        if state.is_alive() { // DIE DIE DIE
+        let pid = Pid::from(pid_num);
+        if process_alive::state(pid).is_alive() { // Termination
             unsafe {
-                libc::kill(PID as i32, 9);
-                println!("DIE DIE DIE");
+                libc::kill(pid_num as i32, 15);
+                println!("Process timeout {}s, terminating {}", timeout/1000, pid_num);
+            }
+        }
+
+        thread::sleep(time::Duration::from_millis(timeout*3));
+        if process_alive::state(pid).is_alive() { // DIE DIE DIE
+            unsafe {
+                libc::kill(pid_num as i32, 9);
+                println!("Failed to terminate. Force killing process {}", pid_num);
             }
         }
     }
