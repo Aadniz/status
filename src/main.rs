@@ -15,7 +15,7 @@ fn main()
 {
     let settings = Arc::new(Mutex::new(Settings::new(None)));
     let tester = Tester::new(Arc::clone(&settings));
-    let pipe = PipeHandler::new(Arc::clone(&settings));
+    let mut pipe = PipeHandler::new(Arc::clone(&settings));
 
     thread::spawn(move || pipe.listen());
 

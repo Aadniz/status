@@ -49,7 +49,7 @@ impl Service {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Settings {
     pub check_interval: u64,
     pub timeout: u64,
