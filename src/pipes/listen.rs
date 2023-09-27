@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 use crate::pipes::PipeHandler;
 use std::io::{BufRead, BufReader, Read, Write};
-use std::ops::Deref;
 use serde::__private::from_utf8_lossy;
 use serde_json;
 use clap::{Args, Parser, Subcommand};
@@ -87,8 +86,8 @@ impl PipeHandler {
         args.names.as_ref().map(|names| {
             if names.len() == 0 || (names.len() == 1 && names[0] == "all") {
                 Some(self.print(serde_json::to_string_pretty(&services).expect("Failed to parse as JSON")))
-            } else {
-                None
+            }else {
+                Some(self.print(serde_json::to_string_pretty(&(services.iter().filter(|s| names.contains(&s.name)).collect::<Vec<_>>())).expect("Failed to parse as JSON")))
             }
         });
     }

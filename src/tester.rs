@@ -19,6 +19,7 @@ impl Tester {
     }
 
     pub fn test(&self){
+        // TODO: need to refactor this such that it doesn't hold onto the mutex
         let mut settings = self.settings.lock().unwrap();
         let timeout = settings.timeout;
         for test in &mut settings.services {
