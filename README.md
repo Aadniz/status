@@ -229,4 +229,4 @@ Expected responds for checking services:
 ]
 ```
 
-# [TODO list](/blob/main/todo.org)
+# [TODO list](/todo.org)
