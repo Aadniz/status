@@ -1,0 +1,88 @@
+#+title: Todo list for status
+#+AUTHOR: D3faIt
+
+* Parser support
+
+We would like to have basic control over checking status, pausing testing, and starting testing.
+Detailed control would be desirable.
+
+As the code functions right now, the parser is unable to allow such arguments like this:
+
+#+begin_src bash
+
+$ status service check test1 test2 test3
+$ status service pause test1 test3
+$ status service start test2 test3
+
+#+end_src
+
+/Or, since we're using named pipe, that would be this instead/
+
+#+begin_src bash
+
+$ echo "service check test1 test2 test3" > /tmp/status_in_pipe
+$ echo "service pause test1 test3" > /tmp/status_in_pipe
+$ echo "service start test2 test3" > /tmp/status_in_pipe
+
+#+end_src
+
+We can't do this because of how the [[https://github.com/clap-rs/clap][clap]] library functions, getting such error:
+
+#+begin_src
+error[E0277]: the trait bound `ServiceSubcommand: clap::Args` is not satisfied
+  --> src/pipes/listen.rs:21:13
+   |
+21 |     Service(ServiceSubcommand),
+   |             ^^^^^^^^^^^^^^^^^ the trait `clap::Args` is not implemented for `ServiceSubcommand`
+   |
+   = help: the following other types implement trait `clap::Args`:
+             Box<T>
+             Cli
+             ServiceArgs
+#+end_src
+
+** Check
+
+Check should print out the info of the service
+
+** Pause
+
+Pause should pause checking/testing the service every x seconds
+
+** Start
+
+Start, pretty much just start it again after having been stopped.
+
+* *proper* arguments
+
+Addressing the elephant in the room, this is /probably/ wanted.
+But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads
+
+* Arguments for commands?
+
+Not sure if arguments for commands defined in `settings.json` works
+
+For example:
+
+#+begin_src js
+
+{
+  "check_interval": 600,
+  "timeout": 3000,
+  "services": [
+    {
+      "name": "Website 1",
+      "command": "/path/to/my/script.py --my-arg argument"
+    },
+    {
+      "name": "Website 2",
+      "command": "commands/web2.sh --wow --cool"
+    }
+  ]
+}
+
+#+end_src
+
+* Add example command scripts for all 3 formats that actually function like one would use it
+
+To clear up some confusion, this is probably not a bad idea
