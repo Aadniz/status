@@ -156,7 +156,9 @@ Communicate:
 ```bash
 $ echo "version" > /tmp/status_in_pipe
 $ echo "help" > /tmp/status_in_pipe
-$ echo "service myservice1 myservice2 otherservice" > /tmp/status_in_pipe
+$ echo "settings" > /tmp/status_in_pipe
+$ echo "service" > /tmp/status_in_pipe  # Shows all the services
+$ echo "service website_1 website_2 vps something" > /tmp/status_in_pipe
 ```
 
 Read the output:
@@ -226,3 +228,5 @@ Expected responds for checking services:
   }
 ]
 ```
+
+# [TODO list](/blob/main/todo.org)
