@@ -9,9 +9,9 @@ const PIPE_IN_FILENAME : &str = "status_in_pipe";
 const PIPE_OUT_FILENAME : &str = "status_out_pipe";
 
 pub struct PipeHandler {
-    pub pipe_in: Pipe,
-    pub pipe_out: Pipe,
-    pub settings: Arc<Mutex<Settings>>
+    pipe_in: Pipe,
+    pipe_out: Pipe,
+    settings: Arc<Mutex<Settings>>
 }
 
 impl PipeHandler {

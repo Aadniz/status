@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fmt, fs};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -48,6 +48,11 @@ impl Service {
         }
     }
 }
+impl fmt::Display for Service {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Name: {}, Command: {}", self.name, self.command)
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Settings {
@@ -78,5 +83,17 @@ impl Settings {
             timeout,
             services,
         }
+    }
+}
+
+impl fmt::Display for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f,
+               "Check Interval: {}\n\
+               Timeout: {}\n\
+               Services:\n{}\n",
+               self.check_interval,
+               self.timeout,
+               self.services.iter().map(|s| s.to_string()).collect::<Vec<_>>().join("\n"))
     }
 }

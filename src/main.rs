@@ -17,7 +17,10 @@ fn main()
     let tester = Tester::new(Arc::clone(&settings));
     let mut pipe = PipeHandler::new(Arc::clone(&settings));
 
-    thread::spawn(move || pipe.listen());
+    thread::Builder::new()
+        .name("Listener".to_string())
+        .spawn(move || pipe.listen())
+        .unwrap();
 
     loop {
         tester.test();
