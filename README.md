@@ -1,8 +1,8 @@
 # status
 
-Status daemon written in rust. Check services output and communicate via named pipe.
+Status daemon written in rust. Check services output and communicate via named pipe (or using the [run script](/run)).
 
-Why? To learn such type of squishy local communication for fun.
+This program is for running tests, and check the status of different test executables you write.
 
 ## Getting started
 
@@ -31,7 +31,10 @@ Template/Example:
   "services": [
     {
       "name": "website_1",
-      "command": "commands/test_website_routing.py"
+      "command": "commands/test_website_routing.py",
+      "args": [
+        "--my-arg", "argument"
+      ]
     },
     {
       "name": "website_2",
@@ -153,6 +156,21 @@ $ ./test_website_routing.py
 The twist with this application is communication over named pipes, yep. So this is how we communicate with it.
 
 Communicate: 
+
+Communicating can now be done with the `run` bash script
+
+```bash
+$ ./run version
+$ ./run help
+$ ./run settings
+$ ./run service
+$ ./run service website_1 website_2 vps something
+```
+
+---
+
+Or if you want more control of that communication, using the named pipes directly
+
 ```bash
 $ echo "version" > /tmp/status_in_pipe
 $ echo "help" > /tmp/status_in_pipe
