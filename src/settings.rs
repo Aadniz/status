@@ -31,6 +31,7 @@ pub enum ResultOutput {
 pub struct Service {
     pub name: String,
     pub command: String,
+    pub args: Option<Vec<String>>,
     pub successes: f64,
     pub result: ResultOutput
 }
@@ -39,10 +40,18 @@ impl Service {
 
         let name = value.get("name").expect("Missing name value in service").as_str().expect("Name is not a valid string");
         let command = value.get("command").expect("Missing command value in service").as_str().expect("Command is not a valid string");
+        let args : Option<Vec<String>> = value.get("args").map(|v| {
+            v.as_array()
+                .expect("args is not a valid array")
+                .iter()
+                .map(|s| s.as_str().expect("arg is not a valid string").to_string())
+                .collect()
+        });
 
         Service {
             name: String::from(name),
             command: String::from(command),
+            args,
             successes: 0.00,
             result: ResultOutput::Bool(false)
         }

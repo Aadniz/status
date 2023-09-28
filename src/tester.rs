@@ -23,6 +23,9 @@ impl Tester {
         let timeout = settings.timeout;
         for test in &mut settings.services {
             let mut command = Command::new(test.command.clone());
+            if let Some(args) = &test.args {
+                command.args(args);
+            }
 
             let option_output = if let Ok(child) = command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
                 let id = child.id();

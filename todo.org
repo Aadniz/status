@@ -57,14 +57,22 @@ Pause should pause checking/testing the service every x seconds
 
 Start, pretty much just start it again after having been stopped.
 
-* [ ] Arguments for commands
+* [ ] Add example command scripts for all 3 formats that actually function like one would use it
+
+To clear up some confusion, this is probably not a bad idea
+
+* [ ] Bash script support error code returns
+
+Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
+We want to pass the exit code from the rust application to bash somehow too
+
+* [X] Arguments for commands
 
 Arguments for commands defined in `settings.json` doesn't works
 
 We want to be able to define such commands:
 
-#+begin_src js
-
+#+begin_src json
 {
   "check_interval": 600,
   "timeout": 3000,
@@ -82,22 +90,38 @@ We want to be able to define such commands:
 
 #+end_src
 
-* [ ] Add example command scripts for all 3 formats that actually function like one would use it
+SOLUTION: Optional key in settings.json. Using the example above we do:
 
-To clear up some confusion, this is probably not a bad idea
-
-* [ ] Bash script support error code returns
-
-Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
-We want to pass the exit code from the rust application to bash somehow too
+#+begin_src json
+{
+  "check_interval": 600,
+  "timeout": 3000,
+  "services": [
+    {
+      "name": "Website 1",
+      "command": "/path/to/my/script.py",
+      "args": [
+        "--my-arg", "argument"
+      ]
+    },
+    {
+      "name": "Website 2",
+      "command": "commands/web2.sh",
+      "args": [
+        "--wow", "--cool"
+      ]
+    }
+  ]
+}
+#+end_src
 
 * [X] *proper* arguments
 
 Addressing the elephant in the room, this is /probably/ wanted.
 But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads
 
-SOLUTION: bash script
-
 #+begin_src bash
 cat "$OUT_PIPE" & echo "$*" > "$IN_PIPE"
 #+end_src
+
+SOLUTION: bash script, check the file called run
