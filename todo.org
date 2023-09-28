@@ -120,8 +120,6 @@ SOLUTION: Optional key in settings.json. Using the example above we do:
 Addressing the elephant in the room, this is /probably/ wanted.
 But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads
 
-#+begin_src bash
-cat "$OUT_PIPE" & echo "$*" > "$IN_PIPE"
-#+end_src
-
 SOLUTION: bash script, check the file called run
+
+See [[https://github.com/D3faIt/status/blob/main/run][the run script]]
