@@ -1,10 +1,9 @@
-use std::sync::{Arc, Mutex};
 use crate::pipes::PipeHandler;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::Read;
 use serde::__private::from_utf8_lossy;
 use serde_json;
 use clap::{Args, Parser, Subcommand};
-use crate::settings::{Service, Settings};
+use crate::settings::Service;
 
 /// Status daemon written in rust.
 /// Check services output and communicate via named pipe
