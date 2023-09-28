@@ -57,11 +57,6 @@ Pause should pause checking/testing the service every x seconds
 
 Start, pretty much just start it again after having been stopped.
 
-* [ ] *proper* arguments
-
-Addressing the elephant in the room, this is /probably/ wanted.
-But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads
-
 * [ ] Arguments for commands
 
 Arguments for commands defined in `settings.json` doesn't works
@@ -90,3 +85,14 @@ We want to be able to define such commands:
 * [ ] Add example command scripts for all 3 formats that actually function like one would use it
 
 To clear up some confusion, this is probably not a bad idea
+
+* [X] *proper* arguments
+
+Addressing the elephant in the room, this is /probably/ wanted.
+But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads
+
+SOLUTION: bash script
+
+#+begin_src bash
+cat "$OUT_PIPE" & echo "$*" > "$IN_PIPE"
+#+end_src
