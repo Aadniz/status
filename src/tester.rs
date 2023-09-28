@@ -19,7 +19,6 @@ impl Tester {
     }
 
     pub fn test(&self){
-        // TODO: need to refactor this such that it doesn't hold onto the mutex
         let mut settings = self.settings.lock().unwrap();
         let timeout = settings.timeout;
         for test in &mut settings.services {
@@ -209,19 +208,19 @@ impl Tester {
         }
     }
 
-    fn suicide_watch(pid_num : u32, timeout : u64){
-        thread::sleep(time::Duration::from_millis(timeout));
+    fn suicide_watch(pid_num : u32, timeout : f64){
+        thread::sleep(time::Duration::from_secs_f64(timeout));
 
         // Check if exists
         let pid = Pid::from(pid_num);
         if process_alive::state(pid).is_alive() { // Termination
             unsafe {
                 libc::kill(pid_num as i32, 15);
-                println!("Process timeout {}s, terminating {}", timeout/1000, pid_num);
+                println!("Process timeout {}s, terminating {}", timeout, pid_num);
             }
         }
 
-        thread::sleep(time::Duration::from_millis(timeout*3));
+        thread::sleep(time::Duration::from_secs_f64(timeout*3.0));
         if process_alive::state(pid).is_alive() { // DIE DIE DIE
             unsafe {
                 libc::kill(pid_num as i32, 9);

@@ -27,7 +27,7 @@ Template/Example:
 ```json
 {
   "check_interval": 600,
-  "timeout": 3000,
+  "timeout": 15.0,
   "services": [
     {
       "name": "website_1",

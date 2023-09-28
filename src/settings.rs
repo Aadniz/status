@@ -5,7 +5,7 @@ use serde_json::Value;
 const DEFAULT_SETTINGS: Settings = {
     Settings {
         check_interval: 600,
-        timeout: 12000,
+        timeout: 60.0,
         services: vec![]
     }
 };
@@ -57,7 +57,7 @@ impl fmt::Display for Service {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Settings {
     pub check_interval: u64,
-    pub timeout: u64,
+    pub timeout: f64,
     pub services: Vec<Service>
 }
 
@@ -68,7 +68,7 @@ impl Settings {
         let json: Value = serde_json::from_reader(file).expect("file should be proper JSON");
 
         let check_interval = json.get("check_interval").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.check_interval);
-        let timeout = json.get("timeout").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.timeout);
+        let timeout = json.get("timeout").and_then(|v| v.as_f64()).unwrap_or_else(|| DEFAULT_SETTINGS.timeout);
 
         let services_try = json.get("services").and_then(|v| v.as_array());
         let services = match services_try {

@@ -17,8 +17,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Specify service(s) to do action to
+    /// Shows the result of the service(s) in a JSON format
     Service (ServiceArgs),
+
+    /// List out all available services
+    List,
 
     /// Show settings
     Settings,
@@ -69,25 +72,35 @@ impl PipeHandler {
             .map(|s| s.trim().to_string())
             .filter(|s|!s.is_empty())
             .collect::<Vec<String>>()) {
-            Ok(v) => v,
-            Err(e) => {
-                self.print(e.to_string());
-                return;
-            }
-        };
+
+                // Was able to parse it
+                Ok(v) => v,
+
+                // Wants to show help menu, version menu, or just general error
+                Err(e) => {
+                    self.print(e.to_string());
+                    return;
+                }
+            };
 
         match opts.command {
             Commands::Service(args) => self.service_handler(args, settings.services),
             Commands::Settings => self.print(format!("{}", settings)),
+            Commands::List => self.print(settings.services.iter().map(|s| s.name.clone()).collect::<Vec<_>>().join(", ").to_string())
         }
     }
 
     fn service_handler(&mut self, args: ServiceArgs, services: Vec<Service>) {
         args.names.as_ref().map(|names| {
             if names.len() == 0 || (names.len() == 1 && names[0] == "all") {
-                Some(self.print(serde_json::to_string_pretty(&services).expect("Failed to parse as JSON")))
-            }else {
-                Some(self.print(serde_json::to_string_pretty(&(services.iter().filter(|s| names.contains(&s.name)).collect::<Vec<_>>())).expect("Failed to parse as JSON")))
+                self.print(serde_json::to_string_pretty(&services).unwrap_or("Failed to parse as JSON".to_string()))
+            } else {
+                let filtered_services: Vec<_> = services.iter().filter(|s| names.contains(&s.name)).collect();
+                if filtered_services.is_empty() {
+                    self.print("No services found".to_string());
+                } else {
+                    self.print(serde_json::to_string_pretty(&filtered_services).unwrap_or("Failed to parse as JSON".to_string()))
+                }
             }
         });
     }
