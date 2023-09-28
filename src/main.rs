@@ -24,13 +24,14 @@ fn main()
 
     loop {
         tester.test();
+        // TODO: single-threaded service checker here
 
-        let check_interval : u64 = {
+        let interval : u64 = {
             // Creating its own scope to prevent holding onto settings
             let settings = settings.lock().unwrap();
-            settings.check_interval
+            settings.interval
         };
-        thread::sleep(time::Duration::from_millis(check_interval * 1000));
+        thread::sleep(time::Duration::from_millis(interval * 1000));
     }
 }
 
