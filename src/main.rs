@@ -33,16 +33,28 @@ fn main()
         .spawn(move || pipe.listen())
         .unwrap();
 
-    loop {
-        tester.test();
-        // TODO: single-threaded service checker here
 
-        let interval : u64 = {
-            // Creating its own scope to prevent holding onto settings
-            let settings = settings.lock().unwrap();
-            settings.interval
-        };
-        thread::sleep(time::Duration::from_millis(interval * 1000));
+    // Setting up multithreading handles
+    let mut handles = vec![];
+
+    {
+        let settings = settings.lock().unwrap().clone();
+        for service in settings.services {
+            let tester_clone = tester.clone();
+            let handle = thread::spawn(move || {
+                loop {
+                    println!("We are here now");
+                    tester_clone.test(&service);
+                    thread::sleep(time::Duration::from_secs(service.interval));
+                }
+            });
+            handles.push(handle);
+        }
+    }
+
+    // Joining the handles (starting the multithreading)
+    for handle in handles {
+        handle.join().unwrap();
     }
 }
 

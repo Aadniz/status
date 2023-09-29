@@ -18,20 +18,17 @@ impl Tester {
         }
     }
 
-    pub fn test(&self){
-        let mut settings = self.settings.lock().unwrap();
-        let timeout = settings.timeout;
-        for test in &mut settings.services {
-            let mut command = Command::new(test.command.clone());
-            if let Some(args) = &test.args {
+    pub fn test(&self, mut service: &mut Service){
+            let mut command = Command::new(service.command.clone());
+            if let Some(args) = &service.args {
                 command.args(args);
             }
 
             let option_output = match command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
                 Ok(child) => {
                     let id = child.id();
-                    thread::spawn(move || Tester::suicide_watch(id, timeout));
-                    println!("Started test with PID:\t{}\t({})", id, test.name);
+                    thread::spawn(move || Tester::suicide_watch(id, service.timeout));
+                    println!("Started test with PID:\t{}\t({})", id, service.name);
                     child.wait_with_output()
                 },
                 Err(e) => Err(e),
@@ -39,9 +36,9 @@ impl Tester {
 
             if option_output.is_err() {
                 let result : ResultOutput = ResultOutput::String(option_output.expect_err("Not an error?").to_string());
-                test.successes = 0.0;
-                test.result = result;
-                continue;
+                service.successes = 0.0;
+                service.result = result;
+                return;
             }
 
             let output = option_output.unwrap();
@@ -60,28 +57,28 @@ impl Tester {
                 } else {
                     ResultOutput::String(status.to_string())
                 };
-                test.successes = 0.0;
-                test.result = result;
-                continue;
+                service.successes = 0.0;
+                service.result = result;
+                return;
             }
 
 
             // We want to support 2 different formats. Here we go
-            test.result = match serde_json::from_str::<Value>(&stdout) {
+        service.result = match serde_json::from_str::<Value>(&stdout) {
                 // JSON
-                Ok(value) => self.format_json(value, test.clone()),
+                Ok(value) => self.format_json(value, service.clone()),
                 // PLAIN
                 Err(_) => self.format_plain(&stdout)
             };
 
-            test.successes = match &test.result {
+        service.successes = match &service.result {
                 ResultOutput::String(_) => 1.0,
                 ResultOutput::Bool(b) => b.clone() as i32 as f64,
                 ResultOutput::Int(i) => i.clone() as f64,
                 ResultOutput::Float(f) => f.clone() as f64,
                 ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
             }
-        }
+
     }
 
 
@@ -229,5 +226,11 @@ impl Tester {
                 println!("Failed to terminate. Force killing process {}", pid_num);
             }
         }
+    }
+}
+
+impl Clone for Tester {
+    fn clone(&self) -> Self {
+        return Tester::new(self.settings.clone());
     }
 }
