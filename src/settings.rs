@@ -51,7 +51,7 @@ impl Service {
                 .collect()
         });
         let interval = value.get("interval").and_then(|v| v.as_u64()).unwrap_or(settings.interval);
-        let timeout = value.get("interval").and_then(|v| v.as_f64()).unwrap_or(settings.timeout);
+        let timeout = value.get("timeout").and_then(|v| v.as_f64()).unwrap_or(settings.timeout);
 
         Service {
             name: String::from(name),
@@ -66,7 +66,7 @@ impl Service {
 }
 impl fmt::Display for Service {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Name: {}, Command: {}", self.name, self.command)
+        write!(f, "name: {}, command: {}, interval: {}, timeout: {}", self.name, self.command, self.interval, self.timeout)
     }
 }
 
@@ -96,10 +96,16 @@ impl Settings {
         }
     }
 
-    pub fn new(path: Option<&str>) -> Self {
+    pub fn new(path: Option<String>) -> Self {
 
-        let path : &str = path.unwrap_or("settings.json");
-        let file = fs::File::open(path).expect("file should open read only");
+        let path : String = path.unwrap_or("settings.json".to_string());
+
+        println!("Settings path:\t{}", path);
+
+        let file = match fs::File::open(path) {
+            Ok(file) => file,
+            Err(error) => panic!("Unable to open the file: {:?}", error),
+        };
         let json: Value = serde_json::from_reader(file).expect("file should be proper JSON");
 
         // Here we create the bare-bone settings. Needed in order to reference parent JSON in services

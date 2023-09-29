@@ -27,13 +27,14 @@ impl Tester {
                 command.args(args);
             }
 
-            let option_output = if let Ok(child) = command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
-                let id = child.id();
-                thread::spawn(move || Tester::suicide_watch(id, timeout));
-                println!("Child's ID is {}", id);
-                child.wait_with_output()
-            } else {
-                panic!("Oh no");
+            let option_output = match command.stdout(Stdio::piped()).stderr(Stdio::piped()).spawn() {
+                Ok(child) => {
+                    let id = child.id();
+                    thread::spawn(move || Tester::suicide_watch(id, timeout));
+                    println!("Started test with PID:\t{}\t({})", id, test.name);
+                    child.wait_with_output()
+                },
+                Err(e) => Err(e),
             };
 
             if option_output.is_err() {
@@ -81,8 +82,6 @@ impl Tester {
                 ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
             }
         }
-
-        // println!("{:#?}", settings);
     }
 
 

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::pipes::PipeHandler;
 use crate::settings::Settings;
 use crate::tester::Tester;
+use clap::{Args, Parser, Subcommand};
 
 
 // headers
@@ -10,10 +11,20 @@ pub mod settings;
 pub mod tester;
 pub mod pipes;
 
+/// Status daemon written in rust.
+/// Check services output and communicate via named pipe
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Path to json settings file
+    settings: Option<String>,
+}
 
 fn main()
 {
-    let settings = Arc::new(Mutex::new(Settings::new(None)));
+    let cli = Cli::parse();
+
+    let settings = Arc::new(Mutex::new(Settings::new(cli.settings)));
     let tester = Tester::new(Arc::clone(&settings));
     let mut pipe = PipeHandler::new(Arc::clone(&settings));
 

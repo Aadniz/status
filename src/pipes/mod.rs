@@ -20,8 +20,8 @@ impl PipeHandler {
         let pipe_in = Pipe::with_name(PIPE_IN_FILENAME).expect(format!("Unable to create pipe: {}", PIPE_IN_FILENAME).as_str());
         let pipe_out = Pipe::with_name(PIPE_OUT_FILENAME).expect(format!("Unable to create pipe: {}", PIPE_OUT_FILENAME).as_str());
 
-        println!("In Pipe:  {}", pipe_in.path().display());
-        println!("Out Pipe: {}", pipe_out.path().display());
+        println!("In Pipe:\t{}", pipe_in.path().display());
+        println!("Out Pipe:\t{}", pipe_out.path().display());
 
         PipeHandler {
             pipe_in,
