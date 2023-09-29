@@ -1,7 +1,8 @@
 use std::{thread, time};
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use crate::pipes::PipeHandler;
-use crate::settings::Settings;
+use crate::settings::{Service, Settings};
 use crate::tester::Tester;
 use clap::{Args, Parser, Subcommand};
 
@@ -24,9 +25,10 @@ fn main()
 {
     let cli = Cli::parse();
 
-    let settings = Arc::new(Mutex::new(Settings::new(cli.settings)));
-    let tester = Tester::new(Arc::clone(&settings));
-    let mut pipe = PipeHandler::new(Arc::clone(&settings));
+    let settings = Settings::new(cli.settings);
+
+    let settings_mutex = Arc::new(Mutex::new(settings));
+    let mut pipe = PipeHandler::new(Arc::clone(&settings_mutex));
 
     thread::Builder::new()
         .name("Listener".to_string())
@@ -37,24 +39,38 @@ fn main()
     // Setting up multithreading handles
     let mut handles = vec![];
 
+
     {
-        let settings = settings.lock().unwrap().clone();
-        for service in settings.services {
-            let tester_clone = tester.clone();
-            let handle = thread::spawn(move || {
-                loop {
-                    println!("We are here now");
-                    tester_clone.test(&service);
-                    thread::sleep(time::Duration::from_secs(service.interval));
-                }
-            });
+        let settings = Arc::clone(&settings_mutex);
+        for service in &(*settings.lock().unwrap().services) {
+            let service_mutex = Arc::new(Mutex::new(service));
+            let something = Arc::clone(&service_mutex);
+
+            let handle = thread::spawn(move || test_loop(something));
             handles.push(handle);
         }
     }
 
+
     // Joining the handles (starting the multithreading)
     for handle in handles {
         handle.join().unwrap();
+    }
+}
+
+fn test_loop(service_mutex : Arc<Mutex<&Service>>) {
+    let mut interval = 600;
+
+    loop {
+        // Locking the resource, and updating it
+        {
+            let mut locked_service = service_mutex.lock().unwrap();
+            let (successes, test_result) = Tester::test(locked_service.clone());
+            locked_service.successes = successes;
+            locked_service.result = test_result;
+        }
+
+        thread::sleep(time::Duration::from_secs(interval));
     }
 }
 

@@ -7,18 +7,11 @@ use process_alive::Pid;
 use libc;
 
 
-pub struct Tester {
-    settings: Arc<Mutex<Settings>>
-}
+pub struct Tester {}
 
 impl Tester {
-    pub fn new(settings : Arc<Mutex<Settings>>) -> Self {
-        Tester {
-            settings
-        }
-    }
 
-    pub fn test(&self, mut service: &mut Service){
+    pub fn test(service: Service) -> (f64, ResultOutput) {
             let mut command = Command::new(service.command.clone());
             if let Some(args) = &service.args {
                 command.args(args);
@@ -35,10 +28,7 @@ impl Tester {
             };
 
             if option_output.is_err() {
-                let result : ResultOutput = ResultOutput::String(option_output.expect_err("Not an error?").to_string());
-                service.successes = 0.0;
-                service.result = result;
-                return;
+                return (0.0, ResultOutput::String(option_output.expect_err("Not an error?").to_string()));
             }
 
             let output = option_output.unwrap();
@@ -57,32 +47,31 @@ impl Tester {
                 } else {
                     ResultOutput::String(status.to_string())
                 };
-                service.successes = 0.0;
-                service.result = result;
-                return;
+                return (0.0, result);
             }
 
 
-            // We want to support 2 different formats. Here we go
-        service.result = match serde_json::from_str::<Value>(&stdout) {
-                // JSON
-                Ok(value) => self.format_json(value, service.clone()),
-                // PLAIN
-                Err(_) => self.format_plain(&stdout)
-            };
+        // We want to support 2 different formats. Here we go
+        let result = match serde_json::from_str::<Value>(&stdout) {
+            // JSON
+            Ok(value) => Tester::format_json(value, service.clone()),
+            // PLAIN
+            Err(_) => Tester::format_plain(&stdout)
+        };
 
-        service.successes = match &service.result {
-                ResultOutput::String(_) => 1.0,
-                ResultOutput::Bool(b) => b.clone() as i32 as f64,
-                ResultOutput::Int(i) => i.clone() as f64,
-                ResultOutput::Float(f) => f.clone() as f64,
-                ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
-            }
+        let successes = match &result {
+            ResultOutput::String(_) => 1.0,
+            ResultOutput::Bool(b) => *b as i32 as f64,
+            ResultOutput::Int(i) => *i as f64,
+            ResultOutput::Float(f) => *f as f64,
+            ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
+        };
 
+        return (successes, result);
     }
 
 
-    fn format_json(&self, value : Value, test : Service) -> ResultOutput { // JSON
+    fn format_json(value : Value, test : Service) -> ResultOutput { // JSON
         // Must include name (string), success(bool|float), result(string|number|bool|json)
         // Root JSON can be an array or an object
         if !value.is_object() && !value.is_array() {
@@ -135,7 +124,7 @@ impl Tester {
         ResultOutput::Result(results)
     }
 
-    fn format_plain(&self, value : &str) -> ResultOutput {
+    fn format_plain(value : &str) -> ResultOutput {
         let mut results : Vec<TestResult> = vec![];
         // Validate format
         let mut found_name = false;
@@ -226,11 +215,5 @@ impl Tester {
                 println!("Failed to terminate. Force killing process {}", pid_num);
             }
         }
-    }
-}
-
-impl Clone for Tester {
-    fn clone(&self) -> Self {
-        return Tester::new(self.settings.clone());
     }
 }

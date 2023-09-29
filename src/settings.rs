@@ -1,5 +1,4 @@
 use std::{fmt, fs};
-use clap::ArgAction::Set;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -64,6 +63,7 @@ impl Service {
         }
     }
 }
+
 impl fmt::Display for Service {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "name: {}, command: {}, interval: {}, timeout: {}", self.name, self.command, self.interval, self.timeout)
