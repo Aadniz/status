@@ -39,16 +39,10 @@ fn main()
     // Setting up multithreading handles
     let mut handles = vec![];
 
-
-    {
-        let settings = Arc::clone(&settings_mutex);
-        for service in &(*settings.lock().unwrap().services) {
-            let service_mutex = Arc::new(Mutex::new(service));
-            let something = Arc::clone(&service_mutex);
-
-            let handle = thread::spawn(move || test_loop(something));
-            handles.push(handle);
-        }
+    for service in settings.services {
+        let service_mutex = Arc::new(Mutex::new(service));
+        let handle = thread::spawn(move || test_loop(service_mutex));
+        handles.push(handle);
     }
 
 
@@ -58,7 +52,7 @@ fn main()
     }
 }
 
-fn test_loop(service_mutex : Arc<Mutex<&Service>>) {
+fn test_loop(service_mutex : Arc<Mutex<Service>>) {
     let mut interval = 600;
 
     loop {
