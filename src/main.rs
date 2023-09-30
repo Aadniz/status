@@ -1,11 +1,10 @@
 use std::{thread, time};
-use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use crate::pipes::PipeHandler;
-use crate::settings::{Service, Settings};
+use crate::settings::Settings;
 use crate::tester::Tester;
-use clap::{Args, Parser, Subcommand};
+use clap::{Parser};
 
 
 // headers

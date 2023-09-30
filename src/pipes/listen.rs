@@ -33,6 +33,11 @@ struct ServiceArgs {
 }
 
 impl PipeHandler {
+
+    /// Listens to the input pipe and parses the input.
+    ///
+    /// This function will continuously read from the input pipe and pass the input to the parser.
+    /// It runs in an infinite loop.
     pub fn listen(&mut self){
 
         loop {
@@ -55,7 +60,11 @@ impl PipeHandler {
         }
     }
 
-
+    /// Parses the input and executes the appropriate commands.
+    ///
+    /// # Arguments
+    ///
+    /// * `content` - A string that represents the input to be parsed.
     fn parser(&mut self, content: String) {
 
         // Getting the settings
@@ -89,6 +98,15 @@ impl PipeHandler {
         }
     }
 
+    /// Handles the "service" command.
+    ///
+    /// This function will print the details of the specified services in a JSON format.
+    /// If no services are specified, it will print the details of all services.
+    ///
+    /// # Arguments
+    ///
+    /// * `args` - The arguments of the "service" command.
+    /// * `services` - A vector of `Service` instances that represents the available services.
     fn service_handler(&mut self, args: ServiceArgs, services: Vec<Service>) {
         args.names.as_ref().map(|names| {
             if names.len() == 0 || (names.len() == 1 && names[0] == "all") {

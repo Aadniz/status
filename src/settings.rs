@@ -27,6 +27,7 @@ pub enum ResultOutput {
     Result(Vec<TestResult>)
 }
 
+/// The `Service` struct represents a service that can be tested.
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Service {
     pub name: String,
@@ -38,6 +39,16 @@ pub struct Service {
     pub result: ResultOutput
 }
 impl Service {
+    /// Creates a new `Service` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A reference to a `Value` that contains the service settings.
+    /// * `settings` - A `Settings` instance that contains the global settings in case it isn't defined in the service settings.
+    ///
+    /// # Returns
+    ///
+    /// A new `Service` instance.
     pub fn new(value: &Value, settings: Settings) -> Self {
 
         let name = value.get("name").expect("Missing name value in service").as_str().expect("Name is not a valid string");
@@ -70,6 +81,7 @@ impl fmt::Display for Service {
     }
 }
 
+/// Global settings
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Settings {
     pub interval: u64,
@@ -79,6 +91,11 @@ pub struct Settings {
 
 impl Settings {
 
+    /// Creates a new `Settings` instance without creation of services.
+    ///
+    /// # Arguments
+    ///
+    /// * `json` - A `Value` that contains the settings.
     fn bare(json: Value) -> Self {
 
         let interval = json.get("interval").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.interval);
@@ -96,6 +113,11 @@ impl Settings {
         }
     }
 
+    /// Creates a new `Settings` instance given an optional settings path.
+    ///
+    /// # Arguments
+    ///
+    /// * `path` - An optional string that represents the path to the JSON file. If no path is provided, "settings.json" is used by default.
     pub fn new(path: Option<String>) -> Self {
 
         let path : String = path.unwrap_or("settings.json".to_string());

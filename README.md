@@ -1,6 +1,6 @@
 # status
 
-Status daemon written in rust. Check services output and communicate via named pipe (or using the [run script](/run)).
+Status daemon written in rust.
 
 This program is for running tests, and check the status of different test executables you write.
 
@@ -153,11 +153,7 @@ $ ./test_website_routing.py
 
 ## Communicating
 
-The twist with this application is communication over named pipes, yep. So this is how we communicate with it.
-
-Communicate: 
-
-Communicating can now be done with the `run` bash script
+Communicating can be done with the `run` bash script
 
 ```bash
 $ ./run version

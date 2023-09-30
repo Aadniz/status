@@ -1,7 +1,6 @@
 use std::{thread, time};
-use std::sync::{Arc, Mutex};
 use std::process::{Command, Stdio};
-use crate::settings::{ResultOutput, Service, Settings, TestResult};
+use crate::settings::{ResultOutput, Service, TestResult};
 use serde_json::Value;
 use process_alive::Pid;
 use libc;
@@ -11,6 +10,15 @@ pub struct Tester {}
 
 impl Tester {
 
+    /// Tests a service and returns the success rate and the result of the test.
+    ///
+    /// # Arguments
+    ///
+    /// * `service` - A `Service` instance that represents the service to be tested.
+    ///
+    /// # Returns
+    ///
+    /// A tuple where the first element is the success rate as a float, and the second element is the result of the test as a `ResultOutput`.
     pub fn test(service: Service) -> (f64, ResultOutput) {
             let mut command = Command::new(service.command.clone());
             if let Some(args) = &service.args {
@@ -70,7 +78,25 @@ impl Tester {
         return (successes, result);
     }
 
-
+    /// Formats a JSON value into a `ResultOutput`.
+    ///
+    /// This function expects the JSON value to be either an object or an array. Each object should have the following keys:
+    /// * "name" (string): the name of the test.
+    /// * "success" (number): the success rate of the test. It should be a number between 0.00 and 1.00.
+    /// * "result" (any): the result of the test.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A `Value` that represents the JSON value to be formatted.
+    /// * `test` - A `Service` instance that represents the service being tested.
+    ///
+    /// # Returns
+    ///
+    /// A `ResultOutput` that represents the formatted result.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the JSON value is neither an object nor an array.
     fn format_json(value : Value, test : Service) -> ResultOutput { // JSON
         // Must include name (string), success(bool|float), result(string|number|bool|json)
         // Root JSON can be an array or an object
@@ -124,6 +150,26 @@ impl Tester {
         ResultOutput::Result(results)
     }
 
+    /// Formats a plain text value into a `ResultOutput`.
+    ///
+    /// This function expects the plain text value to be in the following format:
+    /// * The first line should be the name of the test.
+    /// * The second line should be the success rate of the test. It should be a bool, or a number (int or float) between 0.00 and 1.00.
+    /// * The remaining lines should be the description of the test.
+    ///
+    /// Each test should be separated by an empty line.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A string that represents the plain text value to be formatted.
+    ///
+    /// # Returns
+    ///
+    /// A `ResultOutput` that represents the formatted result.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if it fails to parse the description of the test as a string or a JSON value.
     fn format_plain(value : &str) -> ResultOutput {
         let mut results : Vec<TestResult> = vec![];
         // Validate format
@@ -196,6 +242,21 @@ impl Tester {
         }
     }
 
+    /// Monitors a process and terminates it if it exceeds a specified timeout.
+    ///
+    /// This function will first put the current thread to sleep for the duration of the timeout.
+    /// After waking up, it will check if the process is still alive.
+    /// If it is, it will attempt to terminate the process.
+    /// If the process is still alive after another delay (three times the original timeout), it will forcefully kill the process.
+    ///
+    /// # Arguments
+    ///
+    /// * `pid_num` - The PID of the process to be monitored.
+    /// * `timeout` - The duration (in seconds) to wait before terminating the process.
+    ///
+    /// # Safety
+    ///
+    /// This function is `unsafe` because it calls `libc::kill`, which can lead to undefined behavior if not used correctly.
     fn suicide_watch(pid_num : u32, timeout : f64){
         thread::sleep(time::Duration::from_secs_f64(timeout));
 
