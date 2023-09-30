@@ -104,7 +104,7 @@ impl Settings {
 
         let file = match fs::File::open(path) {
             Ok(file) => file,
-            Err(error) => panic!("Unable to open the file: {:?}", error),
+            Err(error) => panic!("Unable to open the file: {}", error),
         };
         let json: Value = serde_json::from_reader(file).expect("file should be proper JSON");
 

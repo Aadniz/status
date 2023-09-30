@@ -66,14 +66,16 @@ To clear up some confusion, this is probably not a bad idea
 Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
 We want to pass the exit code from the rust application to bash somehow too
 
-* STRT Time interval per service
+* DONE Time interval per service
 
 When running a lot of different tests independent from each other, it might not be a bad idea to have different check intervals on them.
 Some services, we may want to check frequent, while others that might cause high load will be ran less often.
 
 We hope to implement an option for each service in settings.json
 
-* [X] Providing settings path as an argument
+SOLUTION: Multithreaded testing for each test acting independent from each other while using shared memory
+
+* DONE Providing settings path as an argument
 
 In some cases we want to spesify the location of the settings.json instead of letting it always be next to the executable.
 
@@ -81,7 +83,7 @@ We want to be able to run the application like `./status /path/to/settings/file.
 
 SOLUTION: There are now 2 argument parsers, one for the daemon itself, and one for for communication
 
-* [X] Arguments for commands
+* DONE Arguments for commands
 
 Arguments for commands defined in `settings.json` doesn't works
 
@@ -130,7 +132,7 @@ SOLUTION: Optional key in settings.json. Using the example above we do:
 }
 #+end_src
 
-* [X] *proper* arguments
+* DONE *proper* arguments
 
 Addressing the elephant in the room, this is /probably/ wanted.
 But this would require making a daemon, 2 applications (Or an alternative like HTTP) instead of 2 threads

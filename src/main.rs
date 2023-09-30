@@ -1,6 +1,7 @@
 use std::{thread, time};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use crate::pipes::PipeHandler;
 use crate::settings::{Service, Settings};
 use crate::tester::Tester;
@@ -26,10 +27,10 @@ fn main()
     let cli = Cli::parse();
 
     let settings = Settings::new(cli.settings);
-
     let settings_mutex = Arc::new(Mutex::new(settings));
     let mut pipe = PipeHandler::new(Arc::clone(&settings_mutex));
 
+    // Starting listening thread
     thread::Builder::new()
         .name("Listener".to_string())
         .spawn(move || pipe.listen())
@@ -37,11 +38,13 @@ fn main()
 
 
     // Setting up multithreading handles
-    let mut handles = vec![];
+    let mut handles : Vec<JoinHandle<()>> = vec![];
 
-    for service in settings.services {
-        let service_mutex = Arc::new(Mutex::new(service));
-        let handle = thread::spawn(move || test_loop(service_mutex));
+    // Looks a bit cryptic, this was needed to allow shared memory
+    let services_mutex = Arc::clone(&settings_mutex);
+    for i in 0..services_mutex.lock().unwrap().services.len() {
+        let services_mutex = Arc::clone(&services_mutex);
+        let handle = thread::spawn(move || test_loop(services_mutex, i));
         handles.push(handle);
     }
 
@@ -52,20 +55,24 @@ fn main()
     }
 }
 
-fn test_loop(service_mutex : Arc<Mutex<Service>>) {
-    let mut interval = 600;
-
+/// Running a single command/test in its independent loop
+///
+/// # Arguments
+///
+/// * `services_mutex` - An Arc Mutex that contains the settings.
+/// * `index` - The index of the service to be tested.
+fn test_loop(services_mutex : Arc<Mutex<Settings>>, index: usize) {
     loop {
+        let service = { services_mutex.lock().unwrap().services[index].clone() };
+        let interval = service.interval;
+        let (successes, test_result) = Tester::test(service);
+
         // Locking the resource, and updating it
         {
-            let mut locked_service = service_mutex.lock().unwrap();
-            let (successes, test_result) = Tester::test(locked_service.clone());
-            locked_service.successes = successes;
-            locked_service.result = test_result;
+            let mut locked_settings = services_mutex.lock().unwrap();
+            locked_settings.services[index].successes = successes;
+            locked_settings.services[index].result = test_result;
         }
-
         thread::sleep(time::Duration::from_secs(interval));
     }
 }
-
-
