@@ -1,7 +1,7 @@
 use std::{thread, time};
 use std::process::{Command, Stdio};
 use crate::settings::{ResultOutput, Service, TestResult};
-use serde_json::Value;
+use serde_json::{json, Value};
 use process_alive::Pid;
 use libc;
 
@@ -105,7 +105,19 @@ impl Tester {
             panic!("JSON is neither object nor array");
         }
         let tests : Vec<Value> = if value.is_object() {
-            vec![Value::Object(value.as_object().unwrap().clone())]
+            let obj = value.as_object().unwrap();
+            // Check if key array
+            if obj.iter().all(|(_, v)| v.is_object()) {
+                let mut vec = Vec::new();
+                for (k, v) in obj {
+                    let mut new_obj = v.clone();
+                    new_obj["name"] = json!(k);
+                    vec.push(new_obj);
+                }
+                vec
+            }else{
+                vec![Value::Object(value.as_object().unwrap().clone())]
+            }
         } else {
             value.as_array().unwrap().to_vec()
         };

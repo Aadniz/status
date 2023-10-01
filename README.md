@@ -119,12 +119,12 @@ $ ./test_vps.py
 ```json
 [
   {
-    "name": "hetzner",
+    "name": "test_hetzner_vps",
     "success": true,
     "result": 200
   },
   {
-    "name": "ovh",
+    "name": "test_ovh_vps",
     "success": false,
     "result": 500
   }
@@ -139,7 +139,7 @@ $ ./test_website_routing.py
 
 ```json
 {
-  "name": "example.org",
+  "name": "test_redirects_for_example_org",
   "success": true,
   "result": {
     "ip": "82.153.138.97",
@@ -150,6 +150,20 @@ $ ./test_website_routing.py
 }
 ```
 *Just outputting the object (not array) is also valid, it will be handled as a single item test*
+
+Lastly, this format is also valid, putting the name as the key:
+```json
+{
+  "test_hetzner_vps": {
+    "success": true,
+    "result": 200
+  },
+  "test_ovh_vps": {
+    "success": false,
+    "result": 500
+  }
+}
+```
 
 ## Communicating
 
