@@ -24,6 +24,7 @@ pub enum ResultOutput {
     Bool(bool),
     Int(i32),
     Float(f32),
+    Null,
     Result(Vec<TestResult>)
 }
 

@@ -68,6 +68,7 @@ impl Tester {
         };
 
         let successes = match &result {
+            ResultOutput::Null => 1.0,
             ResultOutput::String(_) => 1.0,
             ResultOutput::Bool(b) => *b as i32 as f64,
             ResultOutput::Int(i) => *i as f64,
@@ -237,8 +238,10 @@ impl Tester {
 
         if !results.is_empty() {
             ResultOutput::Result(results)
-        }else{
+        }else if !value.is_empty(){
             ResultOutput::String(value.to_string())
+        }else{
+            ResultOutput::Null
         }
     }
 
