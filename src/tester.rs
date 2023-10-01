@@ -160,7 +160,12 @@ impl Tester {
                 result: result_output.clone()
             });
         }
-        ResultOutput::Result(results)
+
+        if !results.is_empty() {
+            ResultOutput::Result(results)
+        } else {
+            ResultOutput::Bool(false)
+        }
     }
 
     /// Formats a plain text value into a `ResultOutput`.
