@@ -29,13 +29,14 @@ impl Tester {
                 Ok(child) => {
                     let id = child.id();
                     thread::spawn(move || Tester::suicide_watch(id, service.timeout));
-                    println!("Started test with PID:\t{}\t({})", id, service.name);
+                    println!("  {}pid {}", id, service.name);
                     child.wait_with_output()
                 },
                 Err(e) => Err(e),
             };
 
             if option_output.is_err() {
+                println!("? {:.2} {} (Not an error?)", 0.00, service.name);
                 return (0.0, ResultOutput::String(option_output.expect_err("Not an error?").to_string()));
             }
 
@@ -55,6 +56,7 @@ impl Tester {
                 } else {
                     ResultOutput::String(status.to_string())
                 };
+                println!("X {:.2} {} (return code {})", 0.00, service.name, status.code().unwrap_or(2522));
                 return (0.0, result);
             }
 
@@ -75,6 +77,15 @@ impl Tester {
             ResultOutput::Float(f) => *f as f64,
             ResultOutput::Result(v) => v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
         };
+
+        if successes >= 1.0 {
+            // No point printing anything really
+            // println!("✓ {:.2} {}", successes, service.name);
+        } else if successes > 0.5 {
+            println!("↑ {:.2} {}", successes, service.name);
+        } else {
+            println!("↓ {:.2} {}", successes, service.name);
+        }
 
         return (successes, result);
     }

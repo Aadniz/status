@@ -81,4 +81,4 @@ fabric.properties
 target
 
 settings.json
-commands/**
+commands/
