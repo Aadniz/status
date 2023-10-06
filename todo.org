@@ -56,3 +56,10 @@ To clear up some confusion, this is probably not a bad idea
 Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
 We want to pass the exit code from the rust application to bash somehow too
 
+* [ ] Pause on no internet
+
+We may want to add a setting to pause checking if there is no internet.
+Sometimes an executable test may need internet to work properly
+
+- Consider lowering interval significantly during loss of internet.
+- Or, instantly test again when there is internet again
