@@ -105,3 +105,20 @@ We hope to implement an option for each service in settings.json
 
 SOLUTION: Multithreaded testing for each test acting independent from each other while using shared memory
 
+
+* [X] Pause on no internet
+:PROPERTIES:
+:ARCHIVE_TIME: 2023-10-07 Sat 07:19
+:ARCHIVE_FILE: ~/RustroverProjects/status/todo.org
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: [X]
+:END:
+
+We may want to add a setting to pause checking if there is no internet.
+Sometimes an executable test may need internet to work properly
+
+SOLUTION: Added "online" crate that checks for the network activity. Also added new setting "pause_on_no_internet". If there is no internet, next interval happens 5 times earlier
+
+- Consider lowering interval significantly during loss of internet.
+- Or, instantly test again when there is internet again
+

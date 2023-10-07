@@ -5,6 +5,7 @@ use crate::pipes::PipeHandler;
 use crate::settings::Settings;
 use crate::tester::Tester;
 use clap::{Parser};
+use online;
 
 
 // headers
@@ -64,6 +65,13 @@ fn test_loop(services_mutex : Arc<Mutex<Settings>>, index: usize) {
     loop {
         let service = { services_mutex.lock().unwrap().services[index].clone() };
         let interval = service.interval;
+
+        // Pause checking if no internet
+        if service.pause_on_no_internet && !online::check(Some(12)).is_ok() {
+            println!("No internet, skipping {}", service.name);
+            thread::sleep(time::Duration::from_secs(interval/5));
+            continue;
+        }
         let (successes, test_result) = Tester::test(service);
 
         // Locking the resource, and updating it

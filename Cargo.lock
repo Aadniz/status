@@ -326,6 +326,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "online"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28b1fb38eaf6c33f63feced1355536f223bc2e849cfe50c91ca79ee706f968e1"
+
+[[package]]
 name = "parking_lot"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -468,6 +474,7 @@ dependencies = [
  "ipipe",
  "libc",
  "nix 0.27.1",
+ "online",
  "process_alive",
  "serde",
  "serde_json",

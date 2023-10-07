@@ -28,6 +28,7 @@ Template/Example:
 {
   "interval": 600,
   "timeout": 15.0,
+  "pause_on_no_internet": true,
   "services": [
     {
       "name": "website_1",
@@ -42,7 +43,8 @@ Template/Example:
     },
     {
       "name": "vps",
-      "command": "commands/vps.py"
+      "command": "commands/vps.py",
+      "timeout": 45
     },
     {
       "name": "something",
@@ -73,11 +75,11 @@ $ echo $?
 
 **Name-success-description example:**
 
-| Key     | Type                            | Description                                                                                                                                                   |
-|---------|---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| name    | str                             | Providing the name of the test                                                                                                                                |
+| Key     | Type                            | Description                                                                                                                                                    |
+|---------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| name    | str                             | Providing the name of the test                                                                                                                                 |
 | success | bool, int<0,1>, float<0.0, 1.0> | How successful was the test. Was it `false`/`0` or `true`/`1`.<br/>or maybe something within the test was wrong, and so you can use float in that case instead |
-| result  | str                             | Some description of the result,<br/>can be as long as you want till it reached the end or hits `\n\n` which indicates a new test                                   |
+| result  | str                             | Some description of the result,<br/>can be as long as you want till it reached the end or hits `\n\n` which indicates a new test                               |
 
 Status code gets ignored if it finds this pattern.
 

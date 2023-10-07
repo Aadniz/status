@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS: Settings = {
     Settings {
         interval: 600,
         timeout: 60.0,
+        pause_on_no_internet: false,
         services: vec![]
     }
 };
@@ -37,6 +38,7 @@ pub struct Service {
     pub interval: u64,
     pub timeout: f64,
     pub successes: f64,
+    pub pause_on_no_internet: bool,
     pub result: ResultOutput
 }
 impl Service {
@@ -63,6 +65,7 @@ impl Service {
         });
         let interval = value.get("interval").and_then(|v| v.as_u64()).unwrap_or(settings.interval);
         let timeout = value.get("timeout").and_then(|v| v.as_f64()).unwrap_or(settings.timeout);
+        let pause_on_no_internet = value.get("pause_on_no_internet").and_then(|v| v.as_bool()).unwrap_or(settings.pause_on_no_internet);
 
         Service {
             name: String::from(name),
@@ -70,6 +73,7 @@ impl Service {
             args,
             interval,
             timeout,
+            pause_on_no_internet,
             successes: 0.00,
             result: ResultOutput::Bool(false)
         }
@@ -87,6 +91,7 @@ impl fmt::Display for Service {
 pub struct Settings {
     pub interval: u64,
     pub timeout: f64,
+    pub pause_on_no_internet: bool,
     pub services: Vec<Service>
 }
 
@@ -101,6 +106,7 @@ impl Settings {
 
         let interval = json.get("interval").and_then(|v| v.as_u64()).unwrap_or_else(|| DEFAULT_SETTINGS.interval);
         let timeout = json.get("timeout").and_then(|v| v.as_f64()).unwrap_or_else(|| DEFAULT_SETTINGS.timeout);
+        let pause_on_no_internet = json.get("pause_on_no_internet").and_then(|v| v.as_bool()).unwrap_or_else(|| DEFAULT_SETTINGS.pause_on_no_internet);
         let services : Vec<Service> = vec![];
 
         // Do NOT create the service here!
@@ -110,6 +116,7 @@ impl Settings {
         Settings {
             interval,
             timeout,
+            pause_on_no_internet,
             services
         }
     }
@@ -145,6 +152,7 @@ impl Settings {
         Settings {
             interval: settings.interval,
             timeout: settings.timeout,
+            pause_on_no_internet: settings.pause_on_no_internet,
             services,
         }
     }
@@ -155,9 +163,11 @@ impl fmt::Display for Settings {
         write!(f,
                "Check Interval: {}\n\
                Timeout: {}\n\
+               Skip with no internet: {}\n\
                Services:\n{}\n",
                self.interval,
                self.timeout,
+               self.pause_on_no_internet,
                self.services.iter().map(|s| s.to_string()).collect::<Vec<_>>().join("\n"))
     }
 }
