@@ -4,7 +4,7 @@
 # Script to communicate with named pipes
 #
 
-NO_OUTPUT_TIMEOUT=60  # Seconds
+NO_OUTPUT_TIMEOUT=10  # Seconds
 OUTPUT_TIMEOUT=0.1  # Seconds
 
 IN_PIPE=/tmp/status_in_pipe
@@ -20,18 +20,20 @@ if [ ! -p "$OUT_PIPE" ]; then
 fi
 
 # Send input to the IN_PIPE in the background
-echo "$*" > "$IN_PIPE" &
+( echo "$*" > "$IN_PIPE" ) &
 ECHO_PID=$!
 
 # Start a background process that will kill echo after NO_OUTPUT_TIMEOUT seconds
-(sleep $NO_OUTPUT_TIMEOUT; kill $ECHO_PID 2>/dev/null) &
-SLEEP_PID=$!
+( sleep $NO_OUTPUT_TIMEOUT; kill $ECHO_PID 2>/dev/null ) &
+EXPR_PID=$!
+SLEEP_PID=$(pgrep -P $EXPR_PID)
 
 # Wait for echo to finish
 wait $ECHO_PID
 
 # If echo finished before the timeout, kill the sleep process
 if kill -0 $SLEEP_PID 2>/dev/null; then
+    kill $EXPR_PID 2>/dev/null
     kill $SLEEP_PID 2>/dev/null
 else
     echo "Writing to pipe timed out after $NO_OUTPUT_TIMEOUT seconds."
@@ -51,6 +53,6 @@ while true; do
         echo "No output from application within $NO_OUTPUT_TIMEOUT seconds."
         exit 124
       fi
-      break
+      exit 0
     fi
 done
