@@ -2,6 +2,7 @@ use crate::pipes::PipeHandler;
 use std::io::Read;
 use serde::__private::from_utf8_lossy;
 use serde_json;
+use std::{thread, time};
 use clap::{Args, Parser, Subcommand};
 use crate::settings::Service;
 
@@ -56,6 +57,9 @@ impl PipeHandler {
 
                 // Pass the input to the parser
                 self.parser(input);
+
+                // Should help prevent race condition lol
+                thread::sleep(time::Duration::from_millis(200));
             }
         }
     }

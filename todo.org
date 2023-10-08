@@ -60,3 +60,4 @@ We want to pass the exit code from the rust application to bash somehow too
 
 Nice to have
 
+* [ ] Some way to easily show failed services
