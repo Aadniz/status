@@ -44,7 +44,7 @@ impl PipeHandler {
         fs::set_permissions(pipe_in.path(), perms).expect("Failed to set permissions");
 
         let mut perms = fs::metadata(pipe_out.path()).expect("Failed to retrieve metadata").permissions();
-        perms.set_mode(0o466); // Writable by owner, readable for others.
+        perms.set_mode(0o644); // Writable by owner, readable for others.
         fs::set_permissions(pipe_out.path(), perms).expect("Failed to set permissions");
 
         println!("In Pipe:\t{}", pipe_in.path().display());
