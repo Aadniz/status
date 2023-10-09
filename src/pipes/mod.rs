@@ -1,7 +1,10 @@
+use std::sync::{Arc, Mutex};
+use std::fs;
+use std::os::unix::fs::PermissionsExt;
+
 mod speaker;
 mod listen;
 
-use std::sync::{Arc, Mutex};
 use crate::settings::Settings;
 use ipipe::Pipe;
 
@@ -31,8 +34,18 @@ impl PipeHandler {
     /// * `settings` - A shared reference to the settings.
     pub fn new(settings : Arc<Mutex<Settings>>) -> Self {
 
+        // Creating the pipes
         let pipe_in = Pipe::with_name(PIPE_IN_FILENAME).expect(format!("Unable to create pipe: {}", PIPE_IN_FILENAME).as_str());
         let pipe_out = Pipe::with_name(PIPE_OUT_FILENAME).expect(format!("Unable to create pipe: {}", PIPE_OUT_FILENAME).as_str());
+
+        // Setting the file permissions here for example
+        let mut perms = fs::metadata(pipe_in.path()).expect("Failed to retrieve metadata").permissions();
+        perms.set_mode(0o622); // Readable by owner, writable for others.
+        fs::set_permissions(pipe_in.path(), perms).expect("Failed to set permissions");
+
+        let mut perms = fs::metadata(pipe_out.path()).expect("Failed to retrieve metadata").permissions();
+        perms.set_mode(0o466); // Writable by owner, readable for others.
+        fs::set_permissions(pipe_out.path(), perms).expect("Failed to set permissions");
 
         println!("In Pipe:\t{}", pipe_in.path().display());
         println!("Out Pipe:\t{}", pipe_out.path().display());
