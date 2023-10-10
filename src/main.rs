@@ -2,7 +2,7 @@ use std::{thread, time};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use crate::pipes::PipeHandler;
-use crate::settings::Settings;
+use crate::settings::{ResultOutput, Settings};
 use crate::tester::Tester;
 use clap::{Parser};
 use online;
@@ -69,7 +69,13 @@ fn test_loop(services_mutex : Arc<Mutex<Settings>>, index: usize) {
         // Pause checking if no internet
         if service.pause_on_no_internet && !online::check(Some(12)).is_ok() {
             println!("No internet, skipping {}", service.name);
-            thread::sleep(time::Duration::from_secs(interval/5));
+            let sleep_duration = match service.result {
+                // Means that it hasn't found any internet for as far as the program has ran
+                ResultOutput::Bool(state) if state == false => time::Duration::from_millis((service.timeout * 1000.0) as u64),
+                // Means that it suddenly lost internet
+                _ => time::Duration::from_secs(interval / 5)
+            };
+            thread::sleep(sleep_duration);
             continue;
         }
         let (successes, test_result) = Tester::test(service);
