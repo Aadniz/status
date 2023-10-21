@@ -27,10 +27,15 @@ enum Commands {
     Settings,
 }
 
-#[derive(Args, Debug)]
+#[derive(Args)]
 struct ServiceArgs {
+    /// The name of the service to show information from
     #[arg(default_value = "all")]
     names: Option<Vec<String>>,
+
+    /// Shorten the result
+    #[arg(long = "short")]
+    short: bool,
 }
 
 impl PipeHandler {
@@ -112,17 +117,55 @@ impl PipeHandler {
     /// * `args` - The arguments of the "service" command.
     /// * `services` - A vector of `Service` instances that represents the available services.
     fn service_handler(&mut self, args: ServiceArgs, services: Vec<Service>) {
-        args.names.as_ref().map(|names| {
+        let short = args.short;
+        let names = args.names.as_ref();
+
+        // Check if names are specified
+        if let Some(names) = names {
+            let mut services_to_print = Vec::new();
+
+            // If "all" is specified or no names are specified, add all services
             if names.len() == 0 || (names.len() == 1 && names[0] == "all") {
-                self.print(serde_json::to_string_pretty(&services).unwrap_or("Failed to parse as JSON".to_string()))
+                services_to_print = services.iter().collect();
             } else {
-                let filtered_services: Vec<_> = services.iter().filter(|s| names.contains(&s.name)).collect();
-                if filtered_services.is_empty() {
-                    self.print("No services found".to_string());
-                } else {
-                    self.print(serde_json::to_string_pretty(&filtered_services).unwrap_or("Failed to parse as JSON".to_string()))
+                // Otherwise, add only the services with the specified names
+                for service in &services {
+                    if names.contains(&service.name) {
+                        services_to_print.push(service);
+                    }
                 }
             }
-        });
+
+            // If no matching services are found, print a message
+            if services_to_print.is_empty() {
+                self.print("No services found".to_string());
+                return;
+            }
+
+            // Prepare the output
+            let output;
+            if short {
+                // If `short` option is specified, manually construct JSON excluding the `result` field
+                let mut short_services = Vec::new();
+                for service in &services_to_print {
+                    let short_service = serde_json::json!({
+                    "name": service.name,
+                    "command": service.command,
+                    "args": service.args,
+                    "interval": service.interval,
+                    "timeout": service.timeout,
+                    "successes": service.successes,
+                    "pause_on_no_internet": service.pause_on_no_internet,
+                });
+                    short_services.push(short_service);
+                }
+                output = serde_json::to_string_pretty(&short_services);
+            } else {
+                output = serde_json::to_string_pretty(&services_to_print);
+            }
+
+            // Print the output
+            self.print(output.unwrap_or("Failed to parse as JSON".to_string()));
+        }
     }
 }
