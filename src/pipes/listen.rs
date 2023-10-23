@@ -4,7 +4,7 @@ use serde::__private::from_utf8_lossy;
 use serde_json;
 use std::{thread, time};
 use clap::{Args, Parser, Subcommand};
-use crate::settings::Service;
+use crate::settings::{ResultOutput, Service};
 
 /// Status daemon written in rust.
 /// Check services output and communicate via named pipe
@@ -36,6 +36,10 @@ struct ServiceArgs {
     /// Shorten the result
     #[arg(long = "short")]
     short: bool,
+
+    /// Only show errors
+    #[arg(long = "errors")]
+    errors: bool,
 }
 
 impl PipeHandler {
@@ -118,22 +122,19 @@ impl PipeHandler {
     /// * `services` - A vector of `Service` instances that represents the available services.
     fn service_handler(&mut self, args: ServiceArgs, services: Vec<Service>) {
         let short = args.short;
+        let errors = args.errors;
         let names = args.names.as_ref();
 
         // Check if names are specified
         if let Some(names) = names {
-            let mut services_to_print = Vec::new();
+            let mut services_to_print;
 
             // If "all" is specified or no names are specified, add all services
             if names.len() == 0 || (names.len() == 1 && names[0] == "all") {
-                services_to_print = services.iter().collect();
+                services_to_print = services;
             } else {
                 // Otherwise, add only the services with the specified names
-                for service in &services {
-                    if names.contains(&service.name) {
-                        services_to_print.push(service);
-                    }
-                }
+                services_to_print = services.into_iter().filter(|service| names.contains(&service.name)).collect();
             }
 
             // If no matching services are found, print a message
@@ -142,23 +143,33 @@ impl PipeHandler {
                 return;
             }
 
+            if errors {
+                services_to_print.retain(|service| service.successes != 1.0);
+                for s in &mut services_to_print {
+                    match &mut s.result {
+                        ResultOutput::Result(r) => {
+                            r.retain(|test_result| test_result.success != 1.0);
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
             // Prepare the output
             let output;
             if short {
                 // If `short` option is specified, manually construct JSON excluding the `result` field
-                let mut short_services = Vec::new();
-                for service in &services_to_print {
-                    let short_service = serde_json::json!({
-                    "name": service.name,
-                    "command": service.command,
-                    "args": service.args,
-                    "interval": service.interval,
-                    "timeout": service.timeout,
-                    "successes": service.successes,
-                    "pause_on_no_internet": service.pause_on_no_internet,
-                });
-                    short_services.push(short_service);
-                }
+                let short_services: Vec<_> = services_to_print.iter().map(|service| {
+                    serde_json::json!({
+                        "name": service.name,
+                        "command": service.command,
+                        "args": service.args,
+                        "interval": service.interval,
+                        "timeout": service.timeout,
+                        "successes": service.successes,
+                        "pause_on_no_internet": service.pause_on_no_internet,
+                    })
+                }).collect();
                 output = serde_json::to_string_pretty(&short_services);
             } else {
                 output = serde_json::to_string_pretty(&services_to_print);
