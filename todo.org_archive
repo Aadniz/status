@@ -122,3 +122,23 @@ SOLUTION: Added "online" crate that checks for the network activity. Also added 
 - Consider lowering interval significantly during loss of internet.
 - Or, instantly test again when there is internet again
 
+
+* [X] Some way to easily show failed services
+:PROPERTIES:
+:ARCHIVE_TIME: 2023-11-05 Sun 17:57
+:ARCHIVE_FILE: ~/RustroverProjects/status/todo.org
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: [X]
+:END:
+
+* NO Bash script support error code returns
+:PROPERTIES:
+:ARCHIVE_TIME: 2023-11-05 Sun 17:58
+:ARCHIVE_FILE: ~/RustroverProjects/status/todo.org
+:ARCHIVE_CATEGORY: todo
+:ARCHIVE_TODO: NO
+:END:
+
+Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
+We want to pass the exit code from the rust application to bash somehow too
+

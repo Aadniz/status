@@ -51,13 +51,7 @@ Start, pretty much just start it again after having been stopped.
 
 To clear up some confusion, this is probably not a bad idea
 
-* [ ] Bash script support error code returns
-
-Right now the bash script only handles exit code 0, 1 and 124. These are success, file not found and timeout.
-We want to pass the exit code from the rust application to bash somehow too
-
 * [ ] Add timestamp to printing
 
 Nice to have
 
-* [ ] Some way to easily show failed services

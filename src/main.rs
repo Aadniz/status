@@ -1,17 +1,18 @@
 use std::{thread, time};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use crate::pipes::PipeHandler;
 use crate::settings::{ResultOutput, Settings};
 use crate::tester::Tester;
 use clap::{Parser};
 use online;
+use crate::zmq_handler::ZmqHandler;
 
 
 // headers
 pub mod settings;
 pub mod tester;
-pub mod pipes;
+pub mod zmq_handler;
+pub mod utils;
 
 /// Status daemon written in rust.
 /// Check services output and communicate via named pipe
@@ -28,12 +29,12 @@ fn main()
 
     let settings = Settings::new(cli.settings);
     let settings_mutex = Arc::new(Mutex::new(settings));
-    let mut pipe = PipeHandler::new(Arc::clone(&settings_mutex));
+    let mut zmq_handler = ZmqHandler::new(Arc::clone(&settings_mutex));
 
     // Starting listening thread
     thread::Builder::new()
         .name("Listener".to_string())
-        .spawn(move || pipe.listen())
+        .spawn(move || zmq_handler.listen())
         .unwrap();
 
 

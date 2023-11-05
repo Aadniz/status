@@ -1,8 +1,10 @@
 # status
 
-Status daemon written in rust.
+Status application written in rust.
 
 This program is for running tests, and check the status of different test executables you write.
+
+Communication is done over ZeroMQ.
 
 ## Getting started
 
@@ -26,6 +28,8 @@ Template/Example:
 
 ```json
 {
+  "port": 5747,
+  "ip": "127.0.0.1",
   "interval": 600,
   "timeout": 15.0,
   "pause_on_no_internet": true,
@@ -169,32 +173,14 @@ Lastly, this format is also valid, putting the name as the key:
 
 ## Communicating
 
-Communicating can be done with the `run` bash script
+Communicating is done over ZeroMQ. There is an example script you can use in the [daemon](/daemon) folder.
 
 ```bash
-$ ./run version
-$ ./run help
-$ ./run settings
-$ ./run service
-$ ./run service website_1 website_2 vps something
-```
-
----
-
-Or if you want more control of that communication, using the named pipes directly
-
-```bash
-$ echo "version" > /tmp/status_in_pipe
-$ echo "help" > /tmp/status_in_pipe
-$ echo "settings" > /tmp/status_in_pipe
-$ echo "service" > /tmp/status_in_pipe  # Shows all the services
-$ echo "service website_1 website_2 vps something" > /tmp/status_in_pipe
-```
-
-Read the output:
-
-```bash
-$ cat /tmp/status_out_pipe
+$ ./main.py version
+$ ./main.py help
+$ ./main.py settings
+$ ./main.py service
+$ ./main.py service website_1 website_2 vps something
 ```
 
 Expected responds for checking services:
