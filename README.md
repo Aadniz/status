@@ -28,8 +28,8 @@ Template/Example:
 
 ```json
 {
+  "protocol": "tcp",
   "port": 5747,
-  "ip": "127.0.0.1",
   "interval": 600,
   "timeout": 15.0,
   "pause_on_no_internet": true,
