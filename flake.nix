@@ -22,5 +22,41 @@
       buildInputs = [ cargo ];
     };
     defaultPackage = self.packages.${system}.status;
+
+     nixosModules.status = { config, pkgs, lib, ... }: {
+       options.services.status = {
+         enable = lib.mkEnableOption "status service";
+
+         package = lib.mkOption {
+           type = lib.types.package;
+           default = self.defaultPackage.${system};
+           description = "The status package to use.";
+         };
+
+         settingsPath = lib.mkOption {
+           type = lib.types.path;
+           description = "The path to the settings.json file.";
+         };
+
+         restartSec = lib.mkOption {
+           type = lib.types.int;
+           default = 120;
+           description = "The number of seconds to wait before restarting the service.";
+         };
+       };
+       config = lib.mkIf config.services.status.enable {
+         systemd.services.status = {
+           description = "Checking all executables, test application written in rust";
+           after = [ "network-online.target" ];
+           wantedBy = [ "multi-user.target" ];
+           serviceConfig = {
+             Type = "simple";
+             ExecStart = "${config.services.status.package}/bin/status ${config.services.status.settingsPath}";
+             Restart = "always";
+             RestartSec = toString config.services.status.restartSec;
+           };
+         };
+       };
+     };
   });
 }
