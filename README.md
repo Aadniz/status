@@ -11,7 +11,7 @@ Communication is done over ZeroMQ.
 You need to have rust installed to run this
 
 ```bash
-$ git clone https://github.com/D3faIt/status.git
+$ git clone https://github.com/Aadniz/status.git
 $ cd status
 $ cargo run
 ```

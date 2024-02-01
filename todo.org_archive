@@ -17,7 +17,7 @@ But this would require making a daemon, 2 applications (Or an alternative like H
 
 SOLUTION: bash script, check the file called run
 
-See [[https://github.com/D3faIt/status/blob/main/run][the run script]]
+See [[https://github.com/Aadniz/status/blob/main/run][the run script]]
 
 * [X] Arguments for commands
 :PROPERTIES:
