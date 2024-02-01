@@ -12,23 +12,18 @@
       inherit system;
       overlays = [ rust-overlay.overlays.default ];
     };
-  in {
-    packages.status = pkgs.rustPlatform.buildRustPackage rec {
+    statusPackage = pkgs.rustPlatform.buildRustPackage rec {
       name = "status";
       src = ./.;
       cargoSha256 = "sha256-owFG9Il289NqXNaV45CbZrKcqQl2py6dLKzX+d+j1wo=";
     };
+  in {
+    packages.status = statusPackage;
     defaultPackage = self.packages.${system}.status;
 
      nixosModules.status = { config, lib, ... }: {
        options.services.status = {
          enable = lib.mkEnableOption "status service";
-
-         package = lib.mkOption {
-           type = lib.types.package;
-           default = self.defaultPackage.${system};
-           description = "The status package to use.";
-         };
 
          settingsPath = lib.mkOption {
            type = lib.types.path;
