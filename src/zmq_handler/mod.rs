@@ -1,18 +1,17 @@
 use std::sync::{Arc, Mutex};
-use zmq::{Context, ROUTER, Socket};
+use zmq::{Context, Socket, ROUTER};
 
-mod speaker;
 mod listen;
+mod speaker;
 
 use crate::settings::Settings;
-
 
 /// The `ZmqHandler` struct, which holds a ZeroMQ ROUTER socket and the application settings.
 pub struct ZmqHandler {
     /// The ZeroMQ ROUTER socket for sending and receiving messages.
     router: Socket,
     /// The application settings, wrapped in an Arc and Mutex for thread safety.
-    settings: Arc<Mutex<Settings>>
+    settings: Arc<Mutex<Settings>>,
 }
 
 impl ZmqHandler {
@@ -28,10 +27,12 @@ impl ZmqHandler {
     /// # Returns
     ///
     /// * A new `ZmqHandler` with the created socket and the provided settings.
-    pub fn new(settings : Arc<Mutex<Settings>>) -> Self {
-
+    pub fn new(settings: Arc<Mutex<Settings>>) -> Self {
         // Extract the protocol and port from the settings
-        let (protocol, port) = { let settings = settings.lock().unwrap().clone(); (settings.protocol, settings.port) };
+        let (protocol, port) = {
+            let settings = settings.lock().unwrap().clone();
+            (settings.protocol, settings.port)
+        };
 
         // Create a new ZeroMQ context
         let context = Context::new();
@@ -40,13 +41,14 @@ impl ZmqHandler {
         let socket = context.socket(ROUTER).unwrap();
 
         // Bind the socket to the specified protocol and port
-        socket.bind(&*format!("{}://*:{}", protocol, port)).expect("Unable to bind socket");
+        socket
+            .bind(&*format!("{}://*:{}", protocol, port))
+            .expect("Unable to bind socket");
 
         // Return a new ZmqHandler with the created socket and the provided settings
         ZmqHandler {
             router: socket,
-            settings
+            settings,
         }
     }
 }
-

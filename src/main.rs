@@ -1,18 +1,17 @@
-use std::{thread, time};
-use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
 use crate::settings::{ResultOutput, Settings};
 use crate::tester::Tester;
-use clap::{Parser};
-use online;
 use crate::zmq_handler::ZmqHandler;
-
+use clap::Parser;
+use online;
+use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
+use std::{thread, time};
 
 // headers
 pub mod settings;
 pub mod tester;
-pub mod zmq_handler;
 pub mod utils;
+pub mod zmq_handler;
 
 /// Status daemon written in rust.
 /// Check services output and communicate via named pipe
@@ -23,8 +22,7 @@ struct Cli {
     settings: Option<String>,
 }
 
-fn main()
-{
+fn main() {
     let cli = Cli::parse();
 
     let settings = Settings::new(cli.settings);
@@ -37,9 +35,8 @@ fn main()
         .spawn(move || zmq_handler.listen())
         .unwrap();
 
-
     // Setting up multithreading handles
-    let mut handles : Vec<JoinHandle<()>> = vec![];
+    let mut handles: Vec<JoinHandle<()>> = vec![];
 
     // Looks a bit cryptic, this was needed to allow shared memory
     let services_mutex = Arc::clone(&settings_mutex);
@@ -48,7 +45,6 @@ fn main()
         let handle = thread::spawn(move || test_loop(services_mutex, i));
         handles.push(handle);
     }
-
 
     // Joining the handles (starting the multithreading)
     for handle in handles {
@@ -62,7 +58,7 @@ fn main()
 ///
 /// * `services_mutex` - An Arc Mutex that contains the settings.
 /// * `index` - The index of the service to be tested.
-fn test_loop(services_mutex : Arc<Mutex<Settings>>, index: usize) {
+fn test_loop(services_mutex: Arc<Mutex<Settings>>, index: usize) {
     loop {
         let service = { services_mutex.lock().unwrap().services[index].clone() };
         let interval = service.interval;
@@ -72,9 +68,11 @@ fn test_loop(services_mutex : Arc<Mutex<Settings>>, index: usize) {
             println!("No internet, skipping {}", service.name);
             let sleep_duration = match service.result {
                 // Means that it hasn't found any internet for as far as the program has ran
-                ResultOutput::Bool(state) if state == false => time::Duration::from_millis((service.timeout * 1000.0) as u64),
+                ResultOutput::Bool(state) if state == false => {
+                    time::Duration::from_millis((service.timeout * 1000.0) as u64)
+                }
                 // Means that it suddenly lost internet
-                _ => time::Duration::from_secs(interval / 5)
+                _ => time::Duration::from_secs(interval / 5),
             };
             thread::sleep(sleep_duration);
             continue;

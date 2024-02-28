@@ -1,7 +1,7 @@
-use crate::zmq_handler::ZmqHandler;
-use serde_json;
-use clap::{Args, Parser, Subcommand};
 use crate::settings::{ResultOutput, Service};
+use crate::zmq_handler::ZmqHandler;
+use clap::{Args, Parser, Subcommand};
+use serde_json;
 
 /// Status daemon written in rust.
 /// Check services output
@@ -15,7 +15,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Shows the result of the service(s) in a JSON format
-    Service (ServiceArgs),
+    Service(ServiceArgs),
 
     /// List out all available services
     List,
@@ -40,12 +40,10 @@ struct ServiceArgs {
 }
 
 impl ZmqHandler {
-
     /// Continuously read from the ZMQ and return the appropriate string information.
     /// It runs in an infinite loop.
     pub fn listen(&mut self) {
         loop {
-
             // Receive a multipart message from the subscriber
             let msg_result = self.router.recv_multipart(0);
 
@@ -61,11 +59,13 @@ impl ZmqHandler {
                             let reply = self.parser(input_str);
 
                             // Send reply back to client
-                            self.router.send_multipart(&[id, reply.into_bytes()], 0).unwrap();
-                        },
+                            self.router
+                                .send_multipart(&[id, reply.into_bytes()], 0)
+                                .unwrap();
+                        }
                         Err(_) => eprintln!("Received invalid UTF-8 data"),
                     }
-                },
+                }
                 Err(e) => eprintln!("Failed to receive message: {}", e),
             }
         }
@@ -77,21 +77,28 @@ impl ZmqHandler {
     ///
     /// * `content` - A string that represents the input to be parsed.
     fn parser(&mut self, content: String) -> String {
-
         // Getting the settings
         let settings = {
             let locked_settings = self.settings.lock().unwrap();
             (*locked_settings).clone()
         };
 
-        let opts = match Cli::try_parse_from(format!("{} {}", std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("status")).display().to_string(), content)
+        let opts = match Cli::try_parse_from(
+            format!(
+                "{} {}",
+                std::env::current_exe()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("status"))
+                    .display()
+                    .to_string(),
+                content
+            )
             .to_string()
             .split_whitespace()
             .map(String::from)
             .map(|s| s.trim().to_string())
-            .filter(|s|!s.is_empty())
-            .collect::<Vec<String>>()) {
-
+            .filter(|s| !s.is_empty())
+            .collect::<Vec<String>>(),
+        ) {
             // Was able to parse it
             Ok(v) => v,
 
@@ -104,7 +111,13 @@ impl ZmqHandler {
         match opts.command {
             Commands::Service(args) => self.service_handler(args, settings.services),
             Commands::Settings => format!("{}", settings),
-            Commands::List => settings.services.iter().map(|s| s.name.clone()).collect::<Vec<_>>().join(", ").to_string()
+            Commands::List => settings
+                .services
+                .iter()
+                .map(|s| s.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+                .to_string(),
         }
     }
 
@@ -124,9 +137,10 @@ impl ZmqHandler {
 
         // Check if names are specified
         let mut services_to_print = match names {
-            Some(names) if !names.is_empty() && names[0] != "all" => {
-                services.into_iter().filter(|service| names.contains(&service.name)).collect()
-            },
+            Some(names) if !names.is_empty() && names[0] != "all" => services
+                .into_iter()
+                .filter(|service| names.contains(&service.name))
+                .collect(),
             _ => services,
         };
 
@@ -148,10 +162,12 @@ impl ZmqHandler {
         }
 
         // Prepare the output
-        let output= if short {
+        let output = if short {
             // If `short` option is specified, manually construct JSON excluding the `result` field
-            let short_services: Vec<_> = services_to_print.iter().map(|service| {
-                serde_json::json!({
+            let short_services: Vec<_> = services_to_print
+                .iter()
+                .map(|service| {
+                    serde_json::json!({
                         "name": service.name,
                         "command": service.command,
                         "args": service.args,
@@ -160,7 +176,8 @@ impl ZmqHandler {
                         "successes": service.successes,
                         "pause_on_no_internet": service.pause_on_no_internet,
                     })
-            }).collect();
+                })
+                .collect();
             serde_json::to_string_pretty(&short_services)
         } else {
             serde_json::to_string_pretty(&services_to_print)
