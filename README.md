@@ -26,20 +26,21 @@ In this file, you define what executables should be run to test the status of
 
 Template/Example:
 
-```json
+```jsonc
 {
-  "protocol": "tcp",
+  "protocol": "tcp",  // Can be tcp, ipc, pgm, epgm
   "port": 5747,
-  "interval": 600,
-  "timeout": 15.0,
-  "pause_on_no_internet": true,
+  "interval": 600,  // Sets the global default interval for all service tests in seconds
+  "timeout": 15.0,  // Global default timeout for all service tests in seconds
+  "pause_on_no_internet": true,  // Do nothing when testing if there is no internet availability
   "services": [
     {
       "name": "website_1",
       "command": "commands/test_website_routing.py",
       "args": [
         "--my-arg", "argument"
-      ]
+      ],
+      "pause_on_no_internet": false  // Overrides the default "pause_on_no_internet: true"
     },
     {
       "name": "website_2",
@@ -48,7 +49,8 @@ Template/Example:
     {
       "name": "vps",
       "command": "commands/vps.py",
-      "timeout": 45
+      "timeout": 45,  // Overrides the default timeout
+      "interval": 1800  // Overrides the default interval
     },
     {
       "name": "something",
