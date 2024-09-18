@@ -33,7 +33,11 @@ socket.connect(f"{PROTOCOL}://{HOST}:{PORT}")
 socket.send(argz.encode("UTF-8"))
 
 # Get reply
-message = socket.recv_multipart()
+if socket.poll(1000, zmq.POLLIN):  # wait for maximum 1s
+    message = socket.recv_multipart()
+else:
+    print("Timeout, is it running?")
+    exit(124)
 
 # Decode each byte string and join them together
 message_str = "".join(part.decode('utf-8') for part in message)
