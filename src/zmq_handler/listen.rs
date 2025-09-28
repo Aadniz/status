@@ -1,7 +1,9 @@
-use crate::settings::{ResultOutput, Service};
-use crate::zmq_handler::ZmqHandler;
 use clap::{Args, Parser, Subcommand};
 use serde_json;
+
+use crate::service::Service;
+use crate::settings::ResultOutput;
+use crate::zmq_handler::ZmqHandler;
 
 /// Status daemon written in rust.
 /// Check services output
@@ -144,7 +146,6 @@ impl ZmqHandler {
             _ => services,
         };
 
-        // If no matching services are found, print a message
         if services_to_print.is_empty() {
             return "No services found".to_string();
         }
@@ -166,15 +167,17 @@ impl ZmqHandler {
             // If `short` option is specified, manually construct JSON excluding the `result` field
             let short_services: Vec<_> = services_to_print
                 .iter()
-                .map(|service| {
+                .map(|s: &Service| {
+                    let timestamp: Option<i64> = s.last_run.map(|t| t.timestamp());
                     serde_json::json!({
-                        "name": service.name,
-                        "command": service.command,
-                        "args": service.args,
-                        "interval": service.interval,
-                        "timeout": service.timeout,
-                        "successes": service.successes,
-                        "pause_on_no_internet": service.pause_on_no_internet,
+                        "name": s.name,
+                        "command": s.command,
+                        "args": s.args,
+                        "interval": s.interval,
+                        "timeout": s.timeout,
+                        "successes": s.successes,
+                        "pause_on_no_internet": s.pause_on_no_internet,
+                        "last_run": timestamp,
                     })
                 })
                 .collect();
@@ -182,8 +185,7 @@ impl ZmqHandler {
         } else {
             serde_json::to_string_pretty(&services_to_print)
         };
-
-        // Print the output
-        return output.unwrap_or("Failed to parse as JSON".to_string());
+        
+        output.unwrap_or("Failed to parse as JSON".to_string())
     }
 }

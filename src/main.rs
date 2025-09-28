@@ -1,17 +1,20 @@
-use crate::settings::{ResultOutput, Settings};
-use crate::tester::Tester;
-use crate::zmq_handler::ZmqHandler;
 use clap::Parser;
 use online;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::{thread, time};
+use chrono::prelude::*;
+
+use crate::settings::{ResultOutput, Settings};
+use crate::tester::Tester;
+use crate::zmq_handler::ZmqHandler;
 
 // headers
 pub mod settings;
 pub mod tester;
 pub mod utils;
 pub mod zmq_handler;
+mod service;
 
 /// Status daemon written in rust.
 /// Check services output and communicate via named pipe
@@ -83,6 +86,7 @@ fn test_loop(services_mutex: Arc<Mutex<Settings>>, index: usize) {
         {
             let mut locked_settings = services_mutex.lock().unwrap();
             locked_settings.services[index].successes = successes;
+            locked_settings.services[index].last_run = Some(Utc::now());
             locked_settings.services[index].result = test_result;
         }
         thread::sleep(time::Duration::from_secs(interval));

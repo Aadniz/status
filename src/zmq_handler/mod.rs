@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 use zmq::{Context, Socket, ROUTER};
 
+use crate::settings::Settings;
+
 mod listen;
 mod speaker;
-
-use crate::settings::Settings;
 
 /// The `ZmqHandler` struct, which holds a ZeroMQ ROUTER socket and the application settings.
 pub struct ZmqHandler {

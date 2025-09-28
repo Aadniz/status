@@ -1,9 +1,11 @@
-use crate::settings::{ResultOutput, Service, TestResult};
 use libc;
 use process_alive::Pid;
 use serde_json::{json, Value};
 use std::process::{Command, Stdio};
 use std::{thread, time};
+
+use crate::service::Service;
+use crate::settings::{ResultOutput, TestResult};
 
 pub struct Tester {}
 
