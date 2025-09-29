@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{fmt, fs};
-
 use crate::service::Service;
+use crate::utils::jsonc::strip_jsonc_comments;
 use crate::utils::protocol::Protocol;
 use crate::utils::retry_show::RetryShow;
 
@@ -130,11 +130,13 @@ impl Settings {
 
         println!("Settings path:\t{}", path);
 
-        let file = match fs::File::open(path) {
-            Ok(file) => file,
+        let file_content = match fs::read_to_string(path) {
+            Ok(fc) => fc,
             Err(error) => panic!("Unable to open the file: {}", error),
         };
-        let json: Value = serde_json::from_reader(file).expect("file should be proper JSON");
+        // In case the person is using JSONC, just run it through this comment-stripper
+        let stripped_json = strip_jsonc_comments(&file_content, true);
+        let json: Value = serde_json::from_str(&stripped_json).expect("file should be proper JSON");
 
         // Here we create the bare-bone settings. Needed in order to reference parent JSON in services
         let settings = Settings::bare(json.clone());

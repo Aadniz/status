@@ -81,5 +81,7 @@ fabric.properties
 target
 
 settings.json
+# JSON with comments also possible
+settings.jsonc
 commands/
 result/
