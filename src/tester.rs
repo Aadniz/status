@@ -3,9 +3,12 @@ use process_alive::Pid;
 use serde_json::{json, Value};
 use std::process::{Command, Stdio};
 use std::{thread, time};
-
+use std::collections::HashMap;
 use crate::service::Service;
 use crate::settings::{ResultOutput, TestResult};
+use crate::utils::retry_show::RetryShow;
+
+type SuccessResult = (f64, ResultOutput);
 
 pub struct Tester {}
 
@@ -19,91 +22,124 @@ impl Tester {
     /// # Returns
     ///
     /// A tuple where the first element is the success rate as a float, and the second element is the result of the test as a `ResultOutput`.
-    pub fn test(service: Service) -> (f64, ResultOutput) {
+    pub fn test(service: &Service) -> SuccessResult {
         let mut command = Command::new(service.command.clone());
         if let Some(args) = &service.args {
             command.args(args);
         }
-
-        let option_output = match command
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-        {
-            Ok(child) => {
-                let id = child.id();
-                thread::spawn(move || Tester::suicide_watch(id, service.timeout));
-                println!("  {}pid {}", id, service.name);
-                child.wait_with_output()
-            }
-            Err(e) => Err(e),
-        };
-
-        if option_output.is_err() {
-            println!("? {:.2} {} (Not an error?)", 0.00, service.name);
-            return (
-                0.0,
-                ResultOutput::String(option_output.expect_err("Not an error?").to_string()),
-            );
-        }
-
-        let output = option_output.unwrap();
-        let status = output.status;
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let stderr = String::from_utf8_lossy(&output.stderr);
-
-        // Command returned a non-zero code
-        if !status.success() {
-            let result: ResultOutput = if !stderr.is_empty() {
-                ResultOutput::String(stderr.to_string())
-            } else if !stdout.is_empty() {
-                ResultOutput::String(stdout.to_string())
-            } else if status.code().is_some() {
-                ResultOutput::String(format!(
-                    "Exited with non-zero code: {}",
-                    status.code().unwrap()
-                ))
-            } else {
-                ResultOutput::String(status.to_string())
+        
+        let mut results: Vec<SuccessResult> = vec!();
+        
+        let retries = service.retry_counter;
+        for retry_count in 0..=retries {
+            let option_output = match command
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+            {
+                Ok(child) => {
+                    let id = child.id();
+                    let timeout = service.timeout;
+                    thread::spawn(move || Tester::suicide_watch(id, timeout));
+                    println!("   {}pid {}", id, service.name);
+                    child.wait_with_output()
+                }
+                Err(e) => Err(e),
             };
-            println!(
-                "X {:.2} {} (return code {})",
-                0.00,
-                service.name,
-                status.code().unwrap_or(2522)
-            );
-            return (0.0, result);
-        }
 
-        // We want to support 2 different formats. Here we go
-        let result = match serde_json::from_str::<Value>(&stdout) {
-            // JSON
-            Ok(value) => Tester::format_json(value, service.clone()),
-            // PLAIN
-            Err(_) => Tester::format_plain(&stdout),
-        };
-
-        let successes = match &result {
-            ResultOutput::Null => 1.0,
-            ResultOutput::String(_) => 1.0,
-            ResultOutput::Bool(b) => *b as i32 as f64,
-            ResultOutput::Int(i) => *i as f64,
-            ResultOutput::Float(f) => *f as f64,
-            ResultOutput::Result(v) => {
-                v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
+            if let Err(e) = option_output {
+                let err_msg = format!("Internal error: {}", e);
+                let success_result = (0.0, ResultOutput::String(err_msg.to_string()));
+                if retries > 0 {
+                    if retries > retry_count {
+                        eprintln!("?⟳ {:.2} {} {}", 0.00, service.name, err_msg);
+                    } else {
+                        eprintln!("?  {:.2} {} {}", 0.00, service.name, err_msg);
+                    }
+                    results.push(success_result);
+                    continue;
+                } else {
+                    eprintln!("?  {:.2} {} {}", 0.00, service.name, err_msg);
+                    return success_result;
+                }
             }
-        };
 
-        if successes >= 1.0 {
-            // No point printing anything really
-            // println!("✓ {:.2} {}", successes, service.name);
-        } else if successes > 0.5 {
-            println!("↑ {:.2} {}", successes, service.name);
-        } else {
-            println!("↓ {:.2} {}", successes, service.name);
+            let output = option_output.unwrap();
+            let status = output.status;
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            // Command returned a non-zero code
+            if !status.success() {
+                let result: ResultOutput = if !stderr.is_empty() {
+                    ResultOutput::String(stderr.to_string())
+                } else if !stdout.is_empty() {
+                    ResultOutput::String(stdout.to_string())
+                } else if status.code().is_some() {
+                    ResultOutput::String(format!(
+                        "Exited with non-zero code: {}",
+                        status.code().unwrap_or(9999)
+                    ))
+                } else {
+                    ResultOutput::String(status.to_string())
+                };
+                let err_msg = format!("Non-zero exit code: {}", status.code().unwrap_or(2522));
+                let success_result = (0.0, result);
+                if retries > 0 {
+                    if retries > retry_count {
+                        eprintln!("X⟳ {:.2} {} {}", 0.00, service.name, err_msg);
+                    } else {
+                        eprintln!("X  {:.2} {} {}", 0.00, service.name, err_msg);
+                    }
+                    results.push(success_result);
+                    continue;
+                } else {
+                    eprintln!("X  {:.2} {} {}", 0.00, service.name, err_msg);
+                    return success_result;
+                }
+            }
+
+            // We want to support 2 different formats. Here we go
+            let result: ResultOutput = match serde_json::from_str::<Value>(&stdout) {
+                // JSON
+                Ok(value) => Tester::format_json(value, service),
+                // PLAIN
+                Err(_) => Tester::format_plain(&stdout),
+            };
+
+            let successes = result.to_successes();
+            if 1.0 > successes {
+                let mut icons = String::new();
+                if successes > 0.5 {
+                    icons += "↑";
+                } else {
+                    icons += "↓";
+                }
+                if retries > retry_count {
+                    icons += "⟳";
+                } else {
+                    icons += " ";
+                }
+                println!("{} {:.2} {}", icons, successes, service.name);
+            }
+            
+            if retries == 0 {
+                // Return early skipping expensive vector push operation
+                // Also skipping the entire retry_show logic
+                return (successes, result);
+            } else if successes == 1.0
+                && (service.retry_show == RetryShow::Best
+                || service.retry_show == RetryShow::CombinedBest
+                || service.retry_show == RetryShow::Median
+            ) {
+                // If we already have a success, and we're looking for the best result(s), just return without continuing
+                return (successes, result);
+            } else {
+                results.push((successes, result));   
+            }
         }
-
-        return (successes, result);
+        
+        Tester::combine_results(results, &service.retry_show)
     }
 
     /// Formats a JSON value into a `ResultOutput`.
@@ -125,7 +161,7 @@ impl Tester {
     /// # Panics
     ///
     /// This function will panic if the JSON value is neither an object nor an array.
-    fn format_json(value: Value, test: Service) -> ResultOutput {
+    fn format_json(value: Value, test: &Service) -> ResultOutput {
         // JSON
         // Must include name (string), success(bool|float), result(string|number|bool|json)
         // Root JSON can be an array or an object
@@ -298,6 +334,141 @@ impl Tester {
             ResultOutput::String(value.to_string())
         } else {
             ResultOutput::Null
+        }
+    }
+
+    /// Combines multiple `SuccessResult` into a single combined `SuccessResult` based on the `RetryShow` strategy set
+    ///
+    /// Strategy:
+    /// - The `retry_strategy` determines which attempt(s) are shown and how the final
+    ///   score is computed (e.g., last attempt, best score, worst score, or averaged).
+    /// - Ties and empty inputs are handled deterministically.
+    ///
+    /// Arguments:
+    /// - `results`: Multiple results from the same test accumulated by multiple retries.
+    /// - `retry_strategy`: Policy that controls how to merge the results.
+    /// 
+    /// Returns:
+    /// - `(score, ResultOutput)`: The aggregated success score and the merged `ResultOutput`.
+    fn combine_results(results: Vec<SuccessResult>, retry_strategy: &RetryShow) -> SuccessResult {
+        match retry_strategy {
+            // This just grabs the best result found
+            RetryShow::Best => {
+                let mut best_result = &results[0];
+                for result in &results {
+                    let (s, _) = result;
+                    if s > &best_result.0 {
+                        best_result = result;
+                    }
+                }
+                best_result.to_owned()
+            },
+            // Most relevant when using `ResultOutput::Result(Vec<TestResult>)`.
+            // It will combine all the TestResults and find the best test for each vector.
+            RetryShow::CombinedBest => {
+                
+                // The combined_best flag does not make sense if all the Vec<TestResult> are empty or not set.
+                // Therefore, default back to flag "best" if this is the case.
+                if results.iter().all(|(_, r)| match r {
+                    ResultOutput::Result(v) => v.is_empty(),
+                    _ => true,
+                }) {
+                    let mut best_result = &results[0];
+                    for result in &results {
+                        let (s, _) = result;
+                        if s > &best_result.0 {
+                            best_result = result;
+                        }
+                    }
+                    return best_result.to_owned();
+                }
+                
+                let mut best_results: HashMap<String, TestResult> = HashMap::new();
+                for (_s, result) in results {
+                    match result {
+                        ResultOutput::Result(v) => {
+                            for tr in v {
+                                let key = tr.name.clone();
+                                if let Some(best_result) = best_results.get(&key) {
+                                    if tr.success > best_result.success {
+                                        best_results.insert(key, tr);
+                                    }
+                                } else {
+                                    best_results.insert(key, tr); 
+                                }
+                            }
+                        },
+                        _ => continue,
+                    }
+                }
+                let result: ResultOutput = ResultOutput::Result(best_results.values().cloned().collect());
+                let successes = result.to_successes();
+                (successes, result)
+                
+            },
+            RetryShow::Median => {
+                // Orders by success rate and picks the middle result
+                // This is generally a bit of a heavy operation to do
+                let count = results.len();
+                let mut results = results.to_owned();
+                results.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+                let mid = count / 2;
+                results[mid].to_owned()
+            },
+            // This just grabs the worst result found
+            RetryShow::Worst => {
+                let mut worst_result = &results[0];
+                for result in &results {
+                    let (s, _) = result;
+                    if &worst_result.0 > s {
+                        worst_result = result;
+                    }
+                }
+                worst_result.to_owned()
+            },
+            // Most relevant when using `ResultOutput::Result(Vec<TestResult>)`.
+            // It will combine all the TestResults and find the worst test for each vector, combining them into one.
+            RetryShow::CombinedWorst => {
+
+                // The combined_best flag does not make sense if all the Vec<TestResult> are empty or not set.
+                // Therefore, default back to flag "best" if this is the case.
+                if results.iter().all(|(_, r)| match r {
+                    ResultOutput::Result(v) => v.is_empty(),
+                    _ => true,
+                }) {
+                    let mut worst_result = &results[0];
+                    for result in &results {
+                        let (s, _) = result;
+                        if &worst_result.0 > s {
+                            worst_result = result;
+                        }
+                    }
+                    return worst_result.to_owned();
+                }
+
+                // We use a hashmap, and use the test result name as the key. This is unique for each test.
+                let mut worst_results: HashMap<String, TestResult> = HashMap::new();
+                for (_s, result) in results {
+                    match result {
+                        ResultOutput::Result(v) => {
+                            for tr in v {
+                                let key = tr.name.clone();
+                                if let Some(worst_result) = worst_results.get(&key) {
+                                    if worst_result.success > tr.success {
+                                        worst_results.insert(key, tr);
+                                    }
+                                } else {
+                                    worst_results.insert(key, tr);
+                                }
+                            }
+                        },
+                        _ => continue,
+                    }
+                }
+                let result: ResultOutput = ResultOutput::Result(worst_results.values().cloned().collect());
+                let successes = result.to_successes();
+                (successes, result)
+            },
         }
     }
 

@@ -3,7 +3,8 @@ use serde_json::Value;
 use std::{fmt, fs};
 
 use crate::service::Service;
-use crate::utils::Protocol;
+use crate::utils::protocol::Protocol;
+use crate::utils::retry_show::RetryShow;
 
 fn default_settings() -> Settings {
     Settings {
@@ -13,6 +14,8 @@ fn default_settings() -> Settings {
         timeout: 60.0,
         pause_on_no_internet: false,
         services: vec![],
+        retry_counter: 0,
+        retry_show: RetryShow::Worst,
     }
 }
 
@@ -33,6 +36,20 @@ pub enum ResultOutput {
     Null,
     Result(Vec<TestResult>),
 }
+impl ResultOutput {
+    pub fn to_successes(&self) -> f64 {
+        match self {
+            ResultOutput::Null => 1.0, // Why success on null?
+            ResultOutput::String(_) => 1.0,
+            ResultOutput::Bool(b) => *b as i32 as f64,
+            ResultOutput::Int(i) => *i as f64,
+            ResultOutput::Float(f) => *f as f64,
+            ResultOutput::Result(v) => {
+                v.iter().map(|val| val.success).sum::<f64>() / v.len() as f64
+            }
+        }
+    }
+}
 
 /// Global settings
 #[derive(Deserialize, Serialize, Clone)]
@@ -42,6 +59,8 @@ pub struct Settings {
     pub interval: u64,
     pub timeout: f64,
     pub pause_on_no_internet: bool,
+    pub retry_counter: i64,
+    pub retry_show: RetryShow,
     pub services: Vec<Service>,
 }
 
@@ -75,6 +94,15 @@ impl Settings {
             .get("pause_on_no_internet")
             .and_then(|v| v.as_bool())
             .unwrap_or_else(|| default_settings.pause_on_no_internet);
+        let retry_counter = json
+            .get("retry_counter")
+            .and_then(|v| v.as_i64())
+            .unwrap_or_else(|| default_settings.retry_counter);
+        let retry_show = json
+            .get("retry_show")
+            .and_then(|v| v.as_str())
+            .and_then(|s| RetryShow::from_str(s))
+            .unwrap_or_else(|| default_settings.retry_show);
         let services: Vec<Service> = vec![];
 
         // Do NOT create the service here!
@@ -86,6 +114,8 @@ impl Settings {
             interval,
             timeout,
             pause_on_no_internet,
+            retry_counter,
+            retry_show,
             services,
         }
     }
@@ -124,6 +154,8 @@ impl Settings {
             interval: settings.interval,
             timeout: settings.timeout,
             pause_on_no_internet: settings.pause_on_no_internet,
+            retry_counter: settings.retry_counter,
+            retry_show: settings.retry_show,
             services,
         }
     }
@@ -136,10 +168,14 @@ impl fmt::Display for Settings {
             "Check Interval: {}\n\
                Timeout: {}\n\
                Skip with no internet: {}\n\
+               Retries: {}\n\
+               Retry strategy: {}\n\
                Services:\n{}\n",
             self.interval,
             self.timeout,
             self.pause_on_no_internet,
+            self.retry_counter,
+            self.retry_show,
             self.services
                 .iter()
                 .map(|s| s.to_string())

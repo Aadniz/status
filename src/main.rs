@@ -80,7 +80,7 @@ fn test_loop(services_mutex: Arc<Mutex<Settings>>, index: usize) {
             thread::sleep(sleep_duration);
             continue;
         }
-        let (successes, test_result) = Tester::test(service);
+        let (successes, test_result) = Tester::test(&service);
 
         // Locking the resource, and updating it
         {

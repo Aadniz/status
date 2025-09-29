@@ -33,6 +33,7 @@ Template/Example:
   "interval": 600,  // Sets the global default interval for all service tests in seconds
   "timeout": 15.0,  // Global default timeout for all service tests in seconds
   "pause_on_no_internet": true,  // Do nothing when testing if there is no internet availability
+  "retry_counter": 2,  // If it fails, how many times to retry. 2 means that it will maximum be ran 3 times in total.
   "services": [
     {
       "name": "website_1",
@@ -49,8 +50,9 @@ Template/Example:
     {
       "name": "vps",
       "command": "commands/vps.py",
-      "timeout": 45,  // Overrides the default timeout
-      "interval": 1800  // Overrides the default interval
+      "timeout": 45,  // Can overrides the default timeout
+      "interval": 1800  // Can overrides the default interval
+      "retry_counter": 0,  // Can also override the default retry_counter
     },
     {
       "name": "something",
