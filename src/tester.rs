@@ -6,7 +6,7 @@ use std::{thread, time};
 use std::collections::HashMap;
 use crate::service::Service;
 use crate::settings::{ResultOutput, TestResult};
-use crate::utils::retry_show::RetryShow;
+use crate::utils::retry_strategy::RetryStrategy;
 
 type SuccessResult = (f64, ResultOutput);
 
@@ -125,12 +125,12 @@ impl Tester {
             
             if retries == 0 {
                 // Return early skipping expensive vector push operation
-                // Also skipping the entire retry_show logic
+                // Also skipping the entire retry_strategy logic
                 return (successes, result);
             } else if successes == 1.0
-                && (service.retry_show == RetryShow::Best
-                || service.retry_show == RetryShow::CombinedBest
-                || service.retry_show == RetryShow::Median
+                && (service.retry_strategy == RetryStrategy::Best
+                || service.retry_strategy == RetryStrategy::CombinedBest
+                || service.retry_strategy == RetryStrategy::Median
             ) {
                 // If we already have a success, and we're looking for the best result(s), just return without continuing
                 return (successes, result);
@@ -139,7 +139,7 @@ impl Tester {
             }
         }
         
-        Tester::combine_results(results, &service.retry_show)
+        Tester::combine_results(results, &service.retry_strategy)
     }
 
     /// Formats a JSON value into a `ResultOutput`.
@@ -337,7 +337,7 @@ impl Tester {
         }
     }
 
-    /// Combines multiple `SuccessResult` into a single combined `SuccessResult` based on the `RetryShow` strategy set
+    /// Combines multiple `SuccessResult` into a single combined `SuccessResult` based on the `RetryStrategy` strategy set
     ///
     /// Strategy:
     /// - The `retry_strategy` determines which attempt(s) are shown and how the final
@@ -350,10 +350,10 @@ impl Tester {
     /// 
     /// Returns:
     /// - `(score, ResultOutput)`: The aggregated success score and the merged `ResultOutput`.
-    fn combine_results(results: Vec<SuccessResult>, retry_strategy: &RetryShow) -> SuccessResult {
+    fn combine_results(results: Vec<SuccessResult>, retry_strategy: &RetryStrategy) -> SuccessResult {
         match retry_strategy {
             // This just grabs the best result found
-            RetryShow::Best => {
+            RetryStrategy::Best => {
                 let mut best_result = &results[0];
                 for result in &results {
                     let (s, _) = result;
@@ -365,7 +365,7 @@ impl Tester {
             },
             // Most relevant when using `ResultOutput::Result(Vec<TestResult>)`.
             // It will combine all the TestResults and find the best test for each vector.
-            RetryShow::CombinedBest => {
+            RetryStrategy::CombinedBest => {
                 
                 // The combined_best flag does not make sense if all the Vec<TestResult> are empty or not set.
                 // Therefore, default back to flag "best" if this is the case.
@@ -406,7 +406,7 @@ impl Tester {
                 (successes, result)
                 
             },
-            RetryShow::Median => {
+            RetryStrategy::Median => {
                 // Orders by success rate and picks the middle result
                 // This is generally a bit of a heavy operation to do
                 let count = results.len();
@@ -416,7 +416,7 @@ impl Tester {
                 results[mid].to_owned()
             },
             // This just grabs the worst result found
-            RetryShow::Worst => {
+            RetryStrategy::Worst => {
                 let mut worst_result = &results[0];
                 for result in &results {
                     let (s, _) = result;
@@ -428,7 +428,7 @@ impl Tester {
             },
             // Most relevant when using `ResultOutput::Result(Vec<TestResult>)`.
             // It will combine all the TestResults and find the worst test for each vector, combining them into one.
-            RetryShow::CombinedWorst => {
+            RetryStrategy::CombinedWorst => {
 
                 // The combined_best flag does not make sense if all the Vec<TestResult> are empty or not set.
                 // Therefore, default back to flag "best" if this is the case.

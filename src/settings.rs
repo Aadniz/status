@@ -4,7 +4,7 @@ use std::{fmt, fs};
 use crate::service::Service;
 use crate::utils::jsonc::strip_jsonc_comments;
 use crate::utils::protocol::Protocol;
-use crate::utils::retry_show::RetryShow;
+use crate::utils::retry_strategy::RetryStrategy;
 
 fn default_settings() -> Settings {
     Settings {
@@ -15,7 +15,7 @@ fn default_settings() -> Settings {
         pause_on_no_internet: false,
         services: vec![],
         retry_counter: 0,
-        retry_show: RetryShow::Worst,
+        retry_strategy: RetryStrategy::Worst,
     }
 }
 
@@ -60,7 +60,7 @@ pub struct Settings {
     pub timeout: f64,
     pub pause_on_no_internet: bool,
     pub retry_counter: i64,
-    pub retry_show: RetryShow,
+    pub retry_strategy: RetryStrategy,
     pub services: Vec<Service>,
 }
 
@@ -98,11 +98,11 @@ impl Settings {
             .get("retry_counter")
             .and_then(|v| v.as_i64())
             .unwrap_or_else(|| default_settings.retry_counter);
-        let retry_show = json
-            .get("retry_show")
+        let retry_strategy = json
+            .get("retry_strategy")
             .and_then(|v| v.as_str())
-            .and_then(|s| RetryShow::from_str(s))
-            .unwrap_or_else(|| default_settings.retry_show);
+            .and_then(|s| RetryStrategy::from_str(s))
+            .unwrap_or_else(|| default_settings.retry_strategy);
         let services: Vec<Service> = vec![];
 
         // Do NOT create the service here!
@@ -115,7 +115,7 @@ impl Settings {
             timeout,
             pause_on_no_internet,
             retry_counter,
-            retry_show,
+            retry_strategy,
             services,
         }
     }
@@ -157,7 +157,7 @@ impl Settings {
             timeout: settings.timeout,
             pause_on_no_internet: settings.pause_on_no_internet,
             retry_counter: settings.retry_counter,
-            retry_show: settings.retry_show,
+            retry_strategy: settings.retry_strategy,
             services,
         }
     }
@@ -177,7 +177,7 @@ impl fmt::Display for Settings {
             self.timeout,
             self.pause_on_no_internet,
             self.retry_counter,
-            self.retry_show,
+            self.retry_strategy,
             self.services
                 .iter()
                 .map(|s| s.to_string())

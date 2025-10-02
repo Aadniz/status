@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::settings::{ResultOutput, Settings};
-use crate::utils::retry_show::RetryShow;
+use crate::utils::retry_strategy::RetryStrategy;
 
 /// The `Service` struct represents a service that can be tested.
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -20,7 +20,7 @@ pub struct Service {
     pub successes: f64,
     pub pause_on_no_internet: bool,
     pub retry_counter: i64,
-    pub retry_show: RetryShow,
+    pub retry_strategy: RetryStrategy,
     pub result: ResultOutput,
 }
 impl Service {
@@ -68,11 +68,11 @@ impl Service {
             .get("retry_counter")
             .and_then(|v| v.as_i64())
             .unwrap_or(settings.retry_counter);
-        let retry_show = value
-            .get("retry_show")
+        let retry_strategy = value
+            .get("retry_strategy")
             .and_then(|v| v.as_str())
-            .and_then(|s| RetryShow::from_str(s))
-            .unwrap_or(settings.retry_show);
+            .and_then(|s| RetryStrategy::from_str(s))
+            .unwrap_or(settings.retry_strategy);
 
         Service {
             name: String::from(name),
@@ -84,7 +84,7 @@ impl Service {
             pause_on_no_internet,
             successes: 0.00,
             retry_counter,
-            retry_show,
+            retry_strategy,
             result: ResultOutput::Bool(false),
         }
     }
