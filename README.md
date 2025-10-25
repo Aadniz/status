@@ -51,7 +51,7 @@ Template/Example:
       "name": "vps",
       "command": "commands/vps.py",
       "timeout": 45,  // Can overrides the default timeout
-      "interval": 1800  // Can overrides the default interval
+      "interval": 1800,  // Can overrides the default interval
       "retry_counter": 0,  // Can also override the default retry_counter
     },
     {
